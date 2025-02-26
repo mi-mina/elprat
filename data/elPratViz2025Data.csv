@@ -1,0 +1,20 @@
+id,centro,alumno,composicion,pariente,origen,grabacion
+1,Pepa Colomer,Sheila,composición1PathToFile,Tía,Marruecos,audio1PathToFile
+1,Pepa Colomer,Sheila,composición1PathToFile,Abuelo,Marruecos,
+1,Pepa Colomer,Sheila,composición1PathToFile,Primo,Barcelona,audio3PathToFile
+1,Pepa Colomer,Sheila,composición1PathToFile,Primo,Barcelona,
+1,Pepa Colomer,Sheila,composición1PathToFile,Yo,El Prat,audio5PathToFile
+1,Pepa Colomer,Sheila,composición1PathToFile,Yo,El Prat,
+1,Pepa Colomer,Rocío,composición1PathToFile,Tía,Málaga,
+1,Pepa Colomer,Rocío,composición1PathToFile,Padre,El Prat,audio8PathToFile
+1,Pepa Colomer,Rocío,composición1PathToFile,Hermana,El Prat,
+1,Pepa Colomer,Rocío,composición1PathToFile,Madre,El Prat,audio10PathToFile
+2,Pepa Colomer,James,composición2PathToFile,Madre,Barcelona,
+2,Pepa Colomer,James,composición2PathToFile,Abuelo,Londres,
+2,Pepa Colomer,James,composición2PathToFile,Tío,Cambridge,
+2,Pepa Colomer,James,composición2PathToFile,Hermana,El prat,audio8PathToFile
+2,Pepa Colomer,Irene,composición2PathToFile,Prima,El prat,
+2,Pepa Colomer,Irene,composición2PathToFile,Padre,Gerona,
+2,Pepa Colomer,Irene,composición2PathToFile,Abuela,Sevilla,audio8PathToFile
+2,Pepa Colomer,Irene,composición2PathToFile,Abuela,Sevilla,audio8PathToFile
+2,Pepa Colomer,Irene,composición2PathToFile,Abuela,Sevilla,
