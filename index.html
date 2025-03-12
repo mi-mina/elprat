@@ -1,37 +1,102 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Laboratorio sonoro Antropoloops</title>
     <style>
-        body {
-            background-color: #0f0f0f;
-        }
+      body {
+        background-color: #121212;
+      }
 
-        .container {
-            max-width: 800px;
-            margin: 4rem auto;
-            padding: 20px;
-        }
+      #graph {
+        width: 100%;
+        height: 100vh;
+        position: relative;
+      }
+      #info {
+        position: absolute; /* Position the info div absolutely */
+        bottom: 0; /* Align it at the bottom */
+        width: 60%; /* Set the width to 80% */
+        left: 50%; /* Position it 50% from the left */
+        transform: translateX(-50%); /* Center it horizontally */
+        background-color: rgba(0, 0, 0, 0.7); /* Semi-transparent background */
+        color: white; /* Text color */
+        display: flex; /* Use Flexbox */
+        flex-direction: column; /* Arrange children in a column */
+        align-items: center; /* Center items horizontally */
+        padding: 10px; /* Padding for some space around the text */
+        font-family: "Roboto", sans-serif; /* Use the Roboto font */
+      }
+
+      #info .top-row {
+        display: flex; /* Use Flexbox */
+        width: 100%; /* Full width */
+        align-items: center; /* Center items vertically */
+        justify-content: space-between; /* Distribute space between items */
+      }
+
+      #info button {
+        background-color: #444; /* Button background color */
+        color: white; /* Button text color */
+        border: none; /* Remove default border */
+        width: 40px; /* Set width */
+        height: 40px; /* Set height */
+        border-radius: 50%; /* Make the button circular */
+        cursor: pointer; /* Pointer cursor on hover */
+        font-family: "Roboto", sans-serif; /* Use the Roboto font */
+        display: flex; /* Use Flexbox */
+        align-items: center; /* Center items vertically */
+        justify-content: center; /* Center items horizontally */
+        font-size: 16px; /* Increase font size for icons */
+      }
+
+      #info .center-text {
+        flex-grow: 1; /* Allow the text to grow */
+        text-align: center; /* Center the text */
+      }
+
+      #info .bottom-text {
+        margin-top: 10px; /* Space above the bottom text */
+        text-align: center; /* Center the text */
+        width: 100%; /* Full width */
+        font-size: 12px; /* Increase font size for icons */
+      }
     </style>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300&display=swap" rel="stylesheet">
-</head>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@300&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
+  </head>
 
-<body>
-    <div class="container">
-        <div style="position: relative;">
-            <div id="graph"></div>
+  <body>
+    <div id="graph"></div>
+    <div id="info">
+      <div class="top-row">
+        <button id="previousButton">
+          <span class="material-icons">fast_rewind</span>
+        </button>
+        <div id="compositionTitel" class="center-text">
+          Título de la composición
         </div>
+        <button id="nextButton">
+          <span class="material-icons">fast_forward</span>
+        </button>
+      </div>
+      <div class="bottom-text">
+        This is additional information text below the buttons and title.
+      </div>
     </div>
 
-
-    <script src="/lib/d3.v7.min.js"></script>
+    <script src="/lib/js/d3.v7.min.js"></script>
+    <script src="/lib/js/chroma.min.cjs"></script>
     <script src="index.js"></script>
-</body>
-
+  </body>
 </html>
