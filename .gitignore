@@ -1,1 +1,5 @@
 .DS_Store
+audios/*
+old/*
+data/elPratViz2025Data_old.csv
+data/elPratViz2025Data_test.csv

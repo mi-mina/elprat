@@ -18,10 +18,10 @@
       #info {
         position: absolute; /* Position the info div absolutely */
         bottom: 0; /* Align it at the bottom */
-        width: 60%; /* Set the width to 80% */
+        width: 50%; /* Set the width to 80% */
         left: 50%; /* Position it 50% from the left */
         transform: translateX(-50%); /* Center it horizontally */
-        background-color: rgba(0, 0, 0, 0.7); /* Semi-transparent background */
+        background-color: rgba(0, 0, 0, 0.3); /* Semi-transparent background */
         color: white; /* Text color */
         display: flex; /* Use Flexbox */
         flex-direction: column; /* Arrange children in a column */
@@ -40,6 +40,8 @@
       #info button {
         background-color: #444; /* Button background color */
         color: white; /* Button text color */
+        margin-left: 0.5em; /* Add some space between buttons */
+        margin-right: 0.5em; /* Add some space between buttons */
         border: none; /* Remove default border */
         width: 40px; /* Set width */
         height: 40px; /* Set height */
@@ -56,12 +58,17 @@
         flex-grow: 1; /* Allow the text to grow */
         text-align: center; /* Center the text */
       }
-
-      #info .bottom-text {
-        margin-top: 10px; /* Space above the bottom text */
-        text-align: center; /* Center the text */
-        width: 100%; /* Full width */
-        font-size: 12px; /* Increase font size for icons */
+      .encabezado {
+        font-size: 0.8em;
+        font-weight: 700;
+        margin-top: 0.2em;
+        margin-bottom: 0.3em;
+      }
+      .texto-normal {
+        font-size: 0.6em;
+        font-weight: 400;
+        margin-top: 0.3em;
+        margin-bottom: 0.2em;
       }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -83,15 +90,17 @@
         <button id="previousButton">
           <span class="material-icons">fast_rewind</span>
         </button>
-        <div id="compositionTitel" class="center-text">
-          Título de la composición
+        <div class="center-text">
+          <p id="centro" class="encabezado"></p>
+          <p class="texto-normal">
+            <span id="docente"></span>
+            <span> - </span>
+            <span id="curso"></span>
+          </p>
         </div>
         <button id="nextButton">
           <span class="material-icons">fast_forward</span>
         </button>
-      </div>
-      <div class="bottom-text">
-        This is additional information text below the buttons and title.
       </div>
     </div>
 

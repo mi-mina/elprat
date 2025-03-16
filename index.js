@@ -165,7 +165,7 @@ function init(files) {
 
       const starContainer = chartContainer.append("g");
 
-      audioObjects["composition"] = new Audio(data.composicion);
+      audioObjects["composition"] = new Audio(`./audios/${data.pieza_path}`);
 
       // Audio composition controls ///////////////////////////////////////////
 
@@ -188,46 +188,6 @@ function init(files) {
       );
 
       handlePlayPause(compositionPlayContainer, "composition");
-
-      // Next
-      // const compositionNextContainer = starContainer.append("g");
-      // compositionNextContainer
-      //   .append("circle")
-      //   .attr("id", "playComposition")
-      //   .attr("cx", compositionPlayR * 2.5)
-      //   .attr("cy", 0)
-      //   .attr("r", compositionPlayR * 0.7)
-      //   .style("fill", chroma(color));
-
-      // drawNextPrevIcon(
-      //   compositionNextContainer,
-      //   compositionPlayR * 0.7,
-      //   "next"
-      // );
-
-      function drawNextPrevIcon(container, r, id) {
-        container.style("cursor", "pointer");
-
-        const icon = container.append("g").attr("id", "icon" + id);
-
-        icon
-          .append("path")
-          .attr("transform", "rotate(90)")
-          .attr("d", triangle(r * 1.2))
-          .attr("pointer-events", "none")
-          .style("fill", "white")
-          .style("filter", "url(#drop-shadow)");
-      }
-
-      // Backward
-      // const compositionBackwardContainer = starContainer.append("g");
-      // compositionBackwardContainer
-      //   .append("circle")
-      //   .attr("id", "playComposition")
-      //   .attr("cx", -compositionPlayR * 2.5)
-      //   .attr("cy", 0)
-      //   .attr("r", compositionPlayR * 0.7)
-      //   .style("fill", chroma(color));
 
       // Students /////////////////////////////////////////////////////////////
       const studentGroup = starContainer
@@ -283,6 +243,13 @@ function init(files) {
         .attr("class", "relativeGroup")
         .style("cursor", d => (d.usada === 1 ? "pointer" : "default"));
 
+      relativeGroup
+        .append("title")
+        .text(
+          d =>
+            `${d.frase}${d.frase && d.significado ? ":" : ""} ${d.significado}`
+        );
+
       const relativeWithAudio = relativeGroup.filter(d => d.usada === 1);
 
       // Big translucent circles
@@ -311,7 +278,7 @@ function init(files) {
       relativeWithAudio.each(function (d) {
         const sanitizedId = sanitizeId(d.id);
         const relativeElement = d3.select(this);
-        const audio = new Audio(d.grabacion);
+        const audio = new Audio(`./audios/${d.grabacion_path}`);
         audioObjects[sanitizedId] = audio;
 
         // Add ended event listener
@@ -433,9 +400,16 @@ function init(files) {
     }
   }
 
+  d3.select("#centro").text(allCompositions[currentId].centro);
+  d3.select("#docente").text(allCompositions[currentId].docente);
+  d3.select("#curso").text(allCompositions[currentId].curso);
+
   d3.select("#nextButton").on("click", function () {
     currentId = currentId >= numberOfCompositions ? 1 : currentId + 1;
     drawGraph(allCompositions);
+    d3.select("#centro").text(allCompositions[currentId].centro);
+    d3.select("#docente").text(allCompositions[currentId].docente);
+    d3.select("#curso").text(allCompositions[currentId].curso);
   });
 
   d3.select("#previousButton").on("click", function () {
@@ -459,9 +433,10 @@ function formatData(dataRaw) {
       docente,
       centro,
       curso,
-      composicion,
+      pieza_path,
       alumno,
-      grabacion,
+      grabacion_path,
+      grabacion_id,
       pariente,
       parentesco,
       origen,
@@ -469,7 +444,6 @@ function formatData(dataRaw) {
       frase,
       significado,
     } = d;
-    const parienteId = `${alumno}-pariente-${pariente ? pariente : i}`;
 
     if (!data[id]) {
       data[id] = {
@@ -477,7 +451,7 @@ function formatData(dataRaw) {
         centro,
         docente,
         curso,
-        composicion,
+        pieza_path,
         alumnos: {},
       };
     }
@@ -490,12 +464,14 @@ function formatData(dataRaw) {
     }
 
     if (+usada === 1) {
-      data[id].alumnos[alumno].parientes[parienteId] = {
-        id: parienteId,
+      data[id].alumnos[alumno].parientes[grabacion_id] = {
+        id: grabacion_id,
         parentesco,
         origen,
         orden: order[parentesco],
-        grabacion,
+        grabacion_path,
+        frase,
+        significado,
         usada: +usada,
       };
     } else {
@@ -508,12 +484,14 @@ function formatData(dataRaw) {
       ).length;
 
       if (registrado === 0) {
-        data[id].alumnos[alumno].parientes[parienteId] = {
-          id: parienteId,
+        data[id].alumnos[alumno].parientes[grabacion_id] = {
+          id: grabacion_id,
           parentesco,
           origen,
           orden: order[parentesco],
-          grabacion,
+          grabacion_path,
+          frase,
+          significado,
           usada: +usada,
         };
       }
@@ -548,10 +526,9 @@ function getCoordinates(data, orientation) {
           ? initA + fanA / 2
           : initA + (fanA / (relativeArray.length - 1)) * i;
 
-      relative.x =
-        student.x + (R2 + orderD * relative.orden) * Math.cos(relativeA);
-      relative.y =
-        student.y + (R2 + orderD * relative.orden) * Math.sin(relativeA);
+      const orden = relative.orden ? relative.orden : 1;
+      relative.x = student.x + (R2 + orderD * orden) * Math.cos(relativeA);
+      relative.y = student.y + (R2 + orderD * orden) * Math.sin(relativeA);
       relative.r = relative.usada === 1 ? relativePlayR : relativeR;
       relative.a = relativeA;
 
@@ -575,7 +552,7 @@ function getLinks(student) {
     link.targetY = relative.y;
 
     link.orden = relative.orden;
-    link.grabacion = relative.grabacion;
+    link.grabacion_path = relative.grabacion_path;
     links.push(link);
   });
 
