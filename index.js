@@ -138,20 +138,24 @@ function init(files) {
   drawGraph(allCompositions);
 
   function drawGraph(data) {
-    // Set up data //////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    // Set up data ////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     const starData = data[currentId];
 
-    // Set up svg ///////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    // Set up svg /////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     const container = document.getElementById("graph");
     const svgWidth = container.clientWidth;
     const svgHeight = container.clientHeight;
     const center = { x: svgWidth / 2, y: svgHeight / 2 };
     const orientation = svgWidth > svgHeight ? "horizontal" : "vertical";
 
-    // Clear /////////////////////////////////////////////////////////////////////
+    // Clear ///////////////////////////////////////////////////////////////////
     d3.select("#graph").selectAll("*").remove();
 
-    // Containers ////////////////////////////////////////////////////////////////
+    // Containers //////////////////////////////////////////////////////////////
     const svg = d3
       .select("#graph")
       .append("svg")
@@ -170,105 +174,21 @@ function init(files) {
     createGlowFilter(defs, "glow", 5);
     createShadowFilter(defs, "drop-shadow", 1);
 
-    // Draw /////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    // Draw ///////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     drawStar(starData, orientation);
 
-    // Draw functions ///////////////////////////////////////////////////////////
+    // Draw functions /////////////////////////////////////////////////////////
     function drawStar(data, orientation) {
-      console.log("star data", data);
-
       const color = colors[d3.randomInt(colors.length)()];
-
       getCoordinates(data, orientation);
 
-      const starContainer = chartContainer.append("g");
-
+      // Add composition audio
       audioObjects["composition"] = new Audio(`./audios/${data.pieza_path}`);
 
-      // Audio composition controls ///////////////////////////////////////////
-      const yPosControls = R1 + R2 + 4 * orderD;
-      const audioControls = starContainer
-        .append("g")
-        .attr("id", "audioControls")
-        .attr("transform", `translate(${0}, ${yPosControls})`);
-
-      // Play / Pause
-      const compositionPlayPauseButtonContainer = audioControls
-        .append("g")
-        .attr("id", "compositionPlayPauseButtonContainer");
-
-      compositionPlayPauseButtonContainer
-        .append("circle")
-        .attr("id", "playComposition")
-        .attr("cx", 0)
-        .attr("cy", 0)
-        .attr("r", compositionPlayR)
-        .style("fill", chroma(color));
-      // .style("filter", "url(#glow)");
-
-      drawPlayPauseIcon(
-        compositionPlayPauseButtonContainer,
-        0,
-        0,
-        compositionPlayR,
-        "composition"
-      );
-
-      handlePlayPause(compositionPlayPauseButtonContainer, "composition");
-
-      // Next button
-      const compositionNextButtonContainer = audioControls
-        .append("g")
-        .attr("id", "nextButton")
-        .attr("transform", `translate(${50}, 0)`);
-
-      compositionNextButtonContainer
-        .append("circle")
-        .attr("cx", 0)
-        .attr("cy", 0)
-        .attr("r", nextPrevR)
-        .style("fill", chroma(color));
-
-      drawNextPreviousIcon(compositionNextButtonContainer, nextPrevR, "next");
-
-      // Previous button
-      const compositionPreviousButtonContainer = audioControls
-        .append("g")
-        .attr("id", "previousButton")
-        .attr("transform", `translate(${-50}, 0)`);
-
-      compositionPreviousButtonContainer
-        .append("circle")
-        .attr("cx", 0)
-        .attr("cy", 0)
-        .attr("r", nextPrevR)
-        .style("fill", chroma(color));
-
-      drawNextPreviousIcon(
-        compositionPreviousButtonContainer,
-        nextPrevR,
-        "previous"
-      );
-
-      // Centro
-      const centroText = audioControls
-        .append("text")
-        .attr("x", 0)
-        .attr("y", 45)
-        .attr("text-anchor", "middle")
-        .style("font", "14px arial")
-        .style("fill", txtRelativeColor)
-        .text(data.centro);
-
-      // Docente + Curso
-      const docenteText = audioControls
-        .append("text")
-        .attr("x", 0)
-        .attr("y", 60)
-        .attr("text-anchor", "middle")
-        .style("font", "10px arial")
-        .style("fill", txtRelativeColor)
-        .text(data.docente + " - " + data.curso);
+      // Containers ///////////////////////////////////////////////////////////
+      const starContainer = chartContainer.append("g");
 
       // Students /////////////////////////////////////////////////////////////
       const studentGroup = starContainer
@@ -417,11 +337,94 @@ function init(files) {
         .style("fill", txtOriginColor)
         .text(d => d.origen);
 
-      // Add Info /////////////////////////////////////////////////////////////////
-      d3.select("#centro").text(allCompositions[currentId].centro);
-      d3.select("#docente").text(allCompositions[currentId].docente);
-      d3.select("#curso").text(allCompositions[currentId].curso);
+      /////////////////////////////////////////////////////////////////////////
+      // Audio composition controls ///////////////////////////////////////////
+      /////////////////////////////////////////////////////////////////////////
+      const yPosControls = R1 + R2 + 5 * orderD;
+      const audioControls = starContainer
+        .append("g")
+        .attr("id", "audioControls")
+        .attr("transform", `translate(${0}, ${yPosControls})`);
 
+      // Play/Pause Button ////////////////////////////////////////////////////
+      const compositionPlayPauseButtonContainer = audioControls
+        .append("g")
+        .attr("id", "compositionPlayPauseButtonContainer");
+
+      compositionPlayPauseButtonContainer
+        .append("circle")
+        .attr("id", "playComposition")
+        .attr("cx", 0)
+        .attr("cy", 0)
+        .attr("r", compositionPlayR)
+        .style("fill", chroma(color));
+
+      drawPlayPauseIcon(
+        compositionPlayPauseButtonContainer,
+        0,
+        0,
+        compositionPlayR,
+        "composition"
+      );
+
+      handlePlayPause(compositionPlayPauseButtonContainer, "composition");
+
+      // Next button //////////////////////////////////////////////////////////
+      const compositionNextButtonContainer = audioControls
+        .append("g")
+        .attr("id", "nextButton")
+        .attr("transform", `translate(${50}, 0)`);
+
+      compositionNextButtonContainer
+        .append("circle")
+        .attr("cx", 0)
+        .attr("cy", 0)
+        .attr("r", nextPrevR)
+        .style("fill", chroma(color));
+
+      drawNextPreviousIcon(compositionNextButtonContainer, nextPrevR, "next");
+
+      // Previous button //////////////////////////////////////////////////////
+      const compositionPreviousButtonContainer = audioControls
+        .append("g")
+        .attr("id", "previousButton")
+        .attr("transform", `translate(${-50}, 0)`);
+
+      compositionPreviousButtonContainer
+        .append("circle")
+        .attr("cx", 0)
+        .attr("cy", 0)
+        .attr("r", nextPrevR)
+        .style("fill", chroma(color));
+
+      drawNextPreviousIcon(
+        compositionPreviousButtonContainer,
+        nextPrevR,
+        "previous"
+      );
+
+      // Add info /////////////////////////////////////////////////////////////
+      // Centro
+      const centroText = audioControls
+        .append("text")
+        .attr("x", 0)
+        .attr("y", 45)
+        .attr("text-anchor", "middle")
+        .style("font", "14px arial")
+        .style("fill", txtRelativeColor)
+        .text(data.centro);
+
+      // Docente + Curso
+      const docenteText = audioControls
+        .append("text")
+        .attr("x", 0)
+        .attr("y", 60)
+        .attr("text-anchor", "middle")
+        .style("font", "10px arial")
+        .style("fill", txtRelativeColor)
+        .text(data.docente + " - " + data.curso);
+
+      // Add event listeners //////////////////////////////////////////////////
       d3.select("#nextButton").on("click", function () {
         // Pause all  audios
         Object.keys(audioObjects).forEach(key => {
@@ -433,11 +436,6 @@ function init(files) {
         // Update star
         currentId = currentId >= numberOfCompositions ? 1 : currentId + 1;
         drawGraph(allCompositions);
-
-        // Update info
-        d3.select("#centro").text(allCompositions[currentId].centro);
-        d3.select("#docente").text(allCompositions[currentId].docente);
-        d3.select("#curso").text(allCompositions[currentId].curso);
       });
 
       d3.select("#previousButton").on("click", function () {
@@ -451,11 +449,6 @@ function init(files) {
         // Update star
         currentId = currentId <= 1 ? numberOfCompositions : currentId - 1;
         drawGraph(allCompositions);
-
-        // Update info
-        d3.select("#centro").text(allCompositions[currentId].centro);
-        d3.select("#docente").text(allCompositions[currentId].docente);
-        d3.select("#curso").text(allCompositions[currentId].curso);
       });
     }
 
@@ -640,7 +633,9 @@ function getCoordinates(data, orientation) {
 
   Object.values(data.alumnos).forEach((student, i, studentArray) => {
     const numberOfStudents = studentArray.length;
-    const fanA = numberOfStudents === 2 ? PI2 * 0.4 : PI2 * 0.3;
+    const maxfanA = numberOfStudents === 2 ? PI2 * 0.45 : PI2 * 0.33;
+    const initRelativeA = PI2 * 0.06;
+    let fanA;
 
     const studenA = initA + (PI2 / studentArray.length) * i;
     student.x = R1 * Math.cos(studenA);
@@ -649,6 +644,11 @@ function getCoordinates(data, orientation) {
     student.a = studenA;
 
     Object.values(student.parientes).forEach((relative, i, relativeArray) => {
+      fanA =
+        (relativeArray.length - 1) * initRelativeA > maxfanA
+          ? maxfanA
+          : initRelativeA * (relativeArray.length - 1);
+
       const textD = 20;
       const initA = studenA - fanA / 2;
       const relativeA =
