@@ -24,7 +24,15 @@ const PI = Math.PI;
 const PI2 = PI * 2;
 const PI_2 = PI / 2;
 const aspectRatio = 19.5 / 9;
+
+const R1 = 30;
+const R2 = 60;
+const orderD = 30;
+const studentR = 12;
+const relativeR = 8;
+const relativePlayR = 10;
 const compositionPlayR = 20;
+const nextPrevR = compositionPlayR * 0.7;
 
 let audioObjects = {};
 
@@ -114,13 +122,11 @@ function init(files) {
   const allCompositions = formatData(dataRaw);
   console.log("allCompositions", allCompositions);
   const numberOfCompositions = Object.keys(allCompositions).length;
-  console.log("numberOfCompositions", numberOfCompositions);
 
   drawGraph(allCompositions);
 
   function drawGraph(data) {
     // Set up data //////////////////////////////////////////////////////////////
-
     const starData = data[currentId];
 
     // Set up svg ///////////////////////////////////////////////////////////////
@@ -144,7 +150,7 @@ function init(files) {
 
     const chartContainer = svg
       .append("g")
-      .attr("transform", d => `translate(${center.x}, ${center.y})`);
+      .attr("transform", d => `translate(${center.x}, ${center.y * 0.8})`);
 
     // Glow ////////////////////////////////////////////////////////////////
     const defs = svg.append("defs");
@@ -168,26 +174,89 @@ function init(files) {
       audioObjects["composition"] = new Audio(`./audios/${data.pieza_path}`);
 
       // Audio composition controls ///////////////////////////////////////////
+      const yPosControls = R1 + R2 + 4 * orderD;
+      const audioControls = starContainer
+        .append("g")
+        .attr("id", "audioControls")
+        .attr("transform", `translate(${0}, ${yPosControls})`);
 
       // Play / Pause
-      const compositionPlayContainer = starContainer.append("g");
-      compositionPlayContainer
+      const compositionPlayPauseButtonContainer = audioControls
+        .append("g")
+        .attr("id", "compositionPlayPauseButtonContainer");
+
+      compositionPlayPauseButtonContainer
         .append("circle")
         .attr("id", "playComposition")
         .attr("cx", 0)
         .attr("cy", 0)
         .attr("r", compositionPlayR)
         .style("fill", chroma(color));
+      // .style("filter", "url(#glow)");
 
       drawPlayPauseIcon(
-        compositionPlayContainer,
+        compositionPlayPauseButtonContainer,
         0,
         0,
         compositionPlayR,
         "composition"
       );
 
-      handlePlayPause(compositionPlayContainer, "composition");
+      handlePlayPause(compositionPlayPauseButtonContainer, "composition");
+
+      // Next button
+      const compositionNextButtonContainer = audioControls
+        .append("g")
+        .attr("id", "nextButton")
+        .attr("transform", `translate(${50}, 0)`);
+
+      compositionNextButtonContainer
+        .append("circle")
+        .attr("cx", 0)
+        .attr("cy", 0)
+        .attr("r", nextPrevR)
+        .style("fill", chroma(color));
+
+      drawNextPreviousIcon(compositionNextButtonContainer, nextPrevR, "next");
+
+      // Previous button
+      const compositionPreviousButtonContainer = audioControls
+        .append("g")
+        .attr("id", "previousButton")
+        .attr("transform", `translate(${-50}, 0)`);
+
+      compositionPreviousButtonContainer
+        .append("circle")
+        .attr("cx", 0)
+        .attr("cy", 0)
+        .attr("r", nextPrevR)
+        .style("fill", chroma(color));
+
+      drawNextPreviousIcon(
+        compositionPreviousButtonContainer,
+        nextPrevR,
+        "previous"
+      );
+
+      // Centro
+      const centroText = audioControls
+        .append("text")
+        .attr("x", 0)
+        .attr("y", 45)
+        .attr("text-anchor", "middle")
+        .style("font", "14px arial")
+        .style("fill", txtRelativeColor)
+        .text(data.centro);
+
+      // Docente + Curso
+      const docenteText = audioControls
+        .append("text")
+        .attr("x", 0)
+        .attr("y", 60)
+        .attr("text-anchor", "middle")
+        .style("font", "10px arial")
+        .style("fill", txtRelativeColor)
+        .text(data.docente + " - " + data.curso);
 
       // Students /////////////////////////////////////////////////////////////
       const studentGroup = starContainer
@@ -255,13 +324,15 @@ function init(files) {
       // Big translucent circles
       relativeWithAudio
         .append("circle")
+        .attr("id", d => `aureola-${sanitizeId(d.id)}`)
         .attr("cx", d => d.x)
         .attr("cy", d => d.y)
         .attr("r", d => d.r * 2.8)
         .style("fill", chroma(color).darken(2))
         .style("fill-opacity", 0.08)
         .style("filter", "url(#glow)")
-        .style("pointer-events", "none");
+        .style("pointer-events", "none")
+        .style("display", "none");
 
       // Relative circles
       relativeGroup
@@ -274,7 +345,7 @@ function init(files) {
         )
         .style("filter", "url(#glow)");
 
-      // play icon
+      // play icon in each relative with audio
       relativeWithAudio.each(function (d) {
         const sanitizedId = sanitizeId(d.id);
         const relativeElement = d3.select(this);
@@ -285,6 +356,7 @@ function init(files) {
         audio.addEventListener("ended", function () {
           d3.select("#playIcon" + sanitizedId).style("display", "block");
           d3.select("#pauseIcon" + sanitizedId).style("display", "none");
+          d3.select(`#aureola-${sanitizedId}`).style("display", "none");
         });
 
         drawPlayPauseIcon(relativeElement, d.x, d.y, d.r, sanitizedId);
@@ -304,7 +376,7 @@ function init(files) {
               : radToDegrees(d.a)
           })`;
         })
-        .attr("y", 7)
+        .attr("y", -7)
         .attr("dy", "0.35em")
         .attr("text-anchor", d =>
           d.a > PI_2 && d.a < PI_2 * 3 ? "end" : "start"
@@ -324,14 +396,55 @@ function init(files) {
                 : radToDegrees(d.a)
             })`
         )
-        .attr("y", -7)
+        .attr("y", 7)
         .attr("dy", "0.35em")
         .attr("text-anchor", d =>
           d.a > PI_2 && d.a < PI_2 * 3 ? "end" : "start"
         )
-        .style("font", "12px arial")
+        .style("font", "10px arial")
         .style("fill", txtOriginColor)
         .text(d => d.origen);
+
+      // Add Info /////////////////////////////////////////////////////////////////
+      d3.select("#centro").text(allCompositions[currentId].centro);
+      d3.select("#docente").text(allCompositions[currentId].docente);
+      d3.select("#curso").text(allCompositions[currentId].curso);
+
+      d3.select("#nextButton").on("click", function () {
+        // Pause all  audios
+        Object.keys(audioObjects).forEach(key => {
+          audioObjects[key].pause();
+        });
+        // Reset audioObjects
+        audioObjects = {};
+
+        // Update star
+        currentId = currentId >= numberOfCompositions ? 1 : currentId + 1;
+        drawGraph(allCompositions);
+
+        // Update info
+        d3.select("#centro").text(allCompositions[currentId].centro);
+        d3.select("#docente").text(allCompositions[currentId].docente);
+        d3.select("#curso").text(allCompositions[currentId].curso);
+      });
+
+      d3.select("#previousButton").on("click", function () {
+        // Pause all  audios
+        Object.keys(audioObjects).forEach(key => {
+          audioObjects[key].pause();
+        });
+        // Reset audioObjects
+        audioObjects = {};
+
+        // Update star
+        currentId = currentId <= 1 ? numberOfCompositions : currentId - 1;
+        drawGraph(allCompositions);
+
+        // Update info
+        d3.select("#centro").text(allCompositions[currentId].centro);
+        d3.select("#docente").text(allCompositions[currentId].docente);
+        d3.select("#curso").text(allCompositions[currentId].curso);
+      });
     }
 
     function drawPlayPauseIcon(container, x, y, r, id) {
@@ -345,7 +458,7 @@ function init(files) {
       playIcon
         .append("path")
         .attr("transform", "rotate(90)")
-        .attr("d", triangle(r * 1.2))
+        .attr("d", triangle(r * 1.1))
         .attr("pointer-events", "none")
         .style("fill", "white")
         .style("filter", "url(#drop-shadow)");
@@ -375,6 +488,29 @@ function init(files) {
         .style("filter", "url(#drop-shadow)");
     }
 
+    function drawNextPreviousIcon(container, r, direction) {
+      container.style("cursor", "pointer");
+
+      const icon = container
+        .append("g")
+        .attr("transform", `rotate(${direction === "next" ? 90 : 270})`);
+
+      icon
+        .append("path")
+        .attr("transform", `translate(0, ${r * 0.3})`)
+        .attr("d", triangle(r * 0.7))
+        .attr("pointer-events", "none")
+        .style("fill", "white")
+        .style("filter", "url(#drop-shadow)");
+      icon
+        .append("path")
+        .attr("transform", `translate(0, ${-r * 0.3})`)
+        .attr("d", triangle(r * 0.7))
+        .attr("pointer-events", "none")
+        .style("fill", "white")
+        .style("filter", "url(#drop-shadow)");
+    }
+
     function handlePlayPause(container, id) {
       container.on("click", function () {
         const audio = audioObjects[id];
@@ -385,38 +521,25 @@ function init(files) {
               audioObjects[key].pause();
               d3.select("#playIcon" + key).style("display", "block");
               d3.select("#pauseIcon" + key).style("display", "none");
+              d3.select(`#aureola-${key}`).style("display", "none");
             }
           });
 
           audio.play();
           d3.select("#playIcon" + id).style("display", "none");
           d3.select("#pauseIcon" + id).style("display", "block");
+          d3.select(`#aureola-${id}`).style("display", "block");
         } else {
           audio.pause();
           d3.select("#playIcon" + id).style("display", "block");
           d3.select("#pauseIcon" + id).style("display", "none");
+          d3.select(`#aureola-${id}`).style("display", "none");
         }
       });
     }
   }
 
-  d3.select("#centro").text(allCompositions[currentId].centro);
-  d3.select("#docente").text(allCompositions[currentId].docente);
-  d3.select("#curso").text(allCompositions[currentId].curso);
-
-  d3.select("#nextButton").on("click", function () {
-    currentId = currentId >= numberOfCompositions ? 1 : currentId + 1;
-    drawGraph(allCompositions);
-    d3.select("#centro").text(allCompositions[currentId].centro);
-    d3.select("#docente").text(allCompositions[currentId].docente);
-    d3.select("#curso").text(allCompositions[currentId].curso);
-  });
-
-  d3.select("#previousButton").on("click", function () {
-    currentId = currentId <= 1 ? numberOfCompositions : currentId - 1;
-    drawGraph(allCompositions);
-  });
-
+  // Resize event /////////////////////////////////////////////////////////////
   window.addEventListener("resize", function () {
     drawGraph(allCompositions);
   });
@@ -427,7 +550,7 @@ function init(files) {
 ///////////////////////////////////////////////////////////////////////////////
 function formatData(dataRaw) {
   const data = {};
-  dataRaw.forEach((d, i) => {
+  dataRaw.forEach(d => {
     const {
       id,
       docente,
@@ -501,17 +624,12 @@ function formatData(dataRaw) {
 }
 
 function getCoordinates(data, orientation) {
-  const R1 = 70;
-  const R2 = 60;
-  const orderD = 30;
-  const studentR = 12;
-  const relativeR = 8;
-  const relativePlayR = 14;
-
   const initA = orientation === "horizontal" ? 0 : PI_2;
-  const fanA = PI2 * 0.4;
 
   Object.values(data.alumnos).forEach((student, i, studentArray) => {
+    const numberOfStudents = studentArray.length;
+    const fanA = numberOfStudents === 2 ? PI2 * 0.4 : PI2 * 0.3;
+
     const studenA = initA + (PI2 / studentArray.length) * i;
     student.x = R1 * Math.cos(studenA);
     student.y = R1 * Math.sin(studenA);
@@ -527,6 +645,12 @@ function getCoordinates(data, orientation) {
           : initA + (fanA / (relativeArray.length - 1)) * i;
 
       const orden = relative.orden ? relative.orden : 1;
+      if (!relative.orden)
+        console.log(
+          "Alerta! No se ha encontrado orden para el pariente: ",
+          relative
+        );
+
       relative.x = student.x + (R2 + orderD * orden) * Math.cos(relativeA);
       relative.y = student.y + (R2 + orderD * orden) * Math.sin(relativeA);
       relative.r = relative.usada === 1 ? relativePlayR : relativeR;
@@ -552,6 +676,7 @@ function getLinks(student) {
     link.targetY = relative.y;
 
     link.orden = relative.orden;
+    link.usada = relative.usada;
     link.grabacion_path = relative.grabacion_path;
     links.push(link);
   });
