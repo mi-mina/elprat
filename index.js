@@ -28,7 +28,7 @@ const aspectRatio = 19.5 / 9;
 const R1 = 30;
 const R2 = 60;
 const orderD = 30;
-const studentR = 12;
+const studentR = 16;
 const relativeR = 8;
 const relativePlayR = 10;
 const compositionPlayR = 20;
@@ -210,8 +210,23 @@ function init(files) {
       studentGroup
         .append("text")
         .attr("x", d => d.x)
-        .attr("y", d => (d.a > PI ? d.y + d.r + 20 : d.y - d.r - 20))
-        .attr("dy", d => (d.a > PI ? "0em" : "0.7em"))
+        .attr("y", d => d.y)
+        .attr("dy", "0.35em")
+        // .attr("y", d => (d.a > PI ? d.y + d.r + 20 : d.y - d.r - 20))
+        // .attr("dy", d => (d.a > PI ? "0em" : "0.7em"))
+        .attr("text-anchor", "middle")
+        .style("font", "14px arial")
+        .style("stroke", "#121212")
+        .style("stroke-width", "2px")
+        .text(d => d.id);
+
+      studentGroup
+        .append("text")
+        .attr("x", d => d.x)
+        .attr("y", d => d.y)
+        .attr("dy", "0.35em")
+        // .attr("y", d => (d.a > PI ? d.y + d.r + 20 : d.y - d.r - 20))
+        // .attr("dy", d => (d.a > PI ? "0em" : "0.7em"))
         .attr("text-anchor", "middle")
         .style("font", "14px arial")
         .style("fill", txtRelativeColor)
