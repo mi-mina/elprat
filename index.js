@@ -47,9 +47,13 @@ const order = {
   Prima: 1,
   Cosí: 1,
   Cosina: 1,
+  Cosines: 1,
   Amic: 1,
+  Amics: 1,
   Amiga: 1,
   Amigo: 1,
+  Amigos: 1,
+  Amigues: 1,
   Pareja: 1,
   Parella: 1,
   Padre: 2,
@@ -64,10 +68,18 @@ const order = {
   Tieta: 2,
   Abuelo: 3,
   Abuela: 3,
+  Yaya: 3,
+  Yayo: 3,
   Avi: 3,
   Àvia: 3,
+  "Tía àvia": 3,
+  "Tío abuelo": 3,
+  Familiar: 3,
+  Familiares: 3,
   Bisabuelo: 4,
   Bisabuela: 4,
+  Profesor: 4,
+  Profesora: 4,
 };
 
 const txtRelativeColor = "#d4d4d4";
@@ -644,7 +656,7 @@ function getCoordinates(data, orientation) {
           ? initA + fanA / 2
           : initA + (fanA / (relativeArray.length - 1)) * i;
 
-      const orden = relative.orden ? relative.orden : 1;
+      const orden = relative.orden ? relative.orden : 2;
       if (!relative.orden)
         console.log(
           "Alerta! No se ha encontrado orden para el pariente: ",
