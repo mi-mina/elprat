@@ -33,6 +33,7 @@ const relativeR = 8;
 const relativePlayR = 10;
 const compositionPlayR = 20;
 const nextPrevR = compositionPlayR * 0.7;
+const yPosControls = R1 + R2 + 7 * orderD;
 
 let audioObjects = {};
 
@@ -82,57 +83,59 @@ const order = {
   Profesora: 4,
 };
 
-const txtRelativeColor = "#d4d4d4";
-const txtOriginColor = "#8f8f8f";
-const linkColor = "#D4D4D4FF";
-const highlightColor = "#ffffff";
+const txtRelativeColorLight = "#d4d4d4";
+const txtRelativeColorDark = "#8f8f8f";
+const txtOriginColor = "#7d7d7d";
+const buttonColor = "#2F2F2FFF";
 
-const colors = [
-  "#d1f586",
-  "#aafd21",
-  "#71a92f",
-  "#b5fb82",
-  "#80ff54",
-  "#b9f9a3",
-  "#74a66c",
-  "#02d53f",
-  "#00b65c",
-  "#01ec84",
-  "#24ae7d",
-  "#1cffbe",
-  "#7bbaa0",
-  "#b3f6dc",
-  "#7cffd8",
-  "#01b09c",
-  "#01e9d7",
-  "#02aad3",
-  "#8bd1ff",
-  "#799adb",
-  "#c37ee5",
-  "#e7b0ff",
-  "#ff9ade",
-  "#ff6dab",
-  "#fc6d50",
-  "#ffc39c",
-  "#cb8c5f",
-  "#ff8e0b",
-  "#ffaf4c",
-  "#ffac33",
-  "#c19149",
-  "#ffd87c",
-  "#b59829",
-  "#fce6ad",
-  "#ffe754",
-  "#acba00",
-  "#e5f15d",
-];
+const colors = ["#ffffe0", "#feffbd", "#4dfffc", "#f73e7c"];
 
+// const colors = [
+//   "#d1f586",
+//   "#aafd21",
+//   "#71a92f",
+//   "#b5fb82",
+//   "#80ff54",
+//   "#b9f9a3",
+//   "#74a66c",
+//   "#02d53f",
+//   "#00b65c",
+//   "#01ec84",
+//   "#24ae7d",
+//   "#1cffbe",
+//   "#7bbaa0",
+//   "#b3f6dc",
+//   "#7cffd8",
+//   "#01b09c",
+//   "#01e9d7",
+//   "#02aad3",
+//   "#8bd1ff",
+//   "#799adb",
+//   "#c37ee5",
+//   "#e7b0ff",
+//   "#ff9ade",
+//   "#ff6dab",
+//   "#fc6d50",
+//   "#ffc39c",
+//   "#cb8c5f",
+//   "#ff8e0b",
+//   "#ffaf4c",
+//   "#ffac33",
+//   "#c19149",
+//   "#ffd87c",
+//   "#b59829",
+//   "#fce6ad",
+//   "#ffe754",
+//   "#acba00",
+//   "#e5f15d",
+// ];
+
+let oldId = undefined;
 let currentId = 1;
 
 function init(files) {
   const dataRaw = files[0];
   const allCompositions = formatData(dataRaw);
-  console.log("allCompositions", allCompositions);
   const numberOfCompositions = Object.keys(allCompositions).length;
 
   drawGraph(allCompositions);
@@ -142,6 +145,9 @@ function init(files) {
     // Set up data ////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     const starData = data[currentId];
+    console.log("starData", JSON.stringify(starData));
+    starData.fx = 0;
+    starData.fy = 0;
 
     ///////////////////////////////////////////////////////////////////////////
     // Set up svg /////////////////////////////////////////////////////////////
@@ -166,7 +172,73 @@ function init(files) {
 
     const chartContainer = svg
       .append("g")
-      .attr("transform", d => `translate(${center.x}, ${center.y * 0.8})`);
+      .attr("transform", d => `translate(${center.x}, ${center.y * 0.9})`);
+
+    // chartContainer
+    //   .append("circle")
+    //   .attr("cx", 0)
+    //   .attr("cy", 0)
+    //   .attr("r", R1 + R2 + 3 * orderD)
+    //   .style("fill", "none")
+    //   .style("stroke", "red");
+
+    const nodes = Object.values(data);
+    nodes.push({ id: "dummy", r: 90, fx: 0, fy: yPosControls });
+
+    nodes.forEach(d => {
+      const container = chartContainer
+        .append("g")
+        .attr("id", `composition${d.id}`)
+        .attr("transform", `translate(${center.x}, ${center.y})`);
+
+      // container
+      //   .append("circle")
+      //   .attr("id", `circleComposition${d.id}`)
+      //   .attr("cx", 0)
+      //   .attr("cy", 0)
+      //   .style("fill", "none")
+      //   .style("stroke", "white");
+
+      // draw simple stars
+      if (d.id === "dummy") {
+        console.log("dummy node");
+      } else if (d.id != currentId) {
+        drawStar(container, data[d.id], orientation, false);
+      } else {
+        drawStar(container, data[d.id], orientation, true);
+      }
+    });
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Simulation /////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    const simulation = d3
+      .forceSimulation(nodes)
+      .alphaTarget(0.15) // stay hot
+      .velocityDecay(0.4) // low friction
+      .force("x", d3.forceX().strength(0.008))
+      .force("y", d3.forceY().strength(0.05))
+      .force(
+        "collide",
+        d3
+          .forceCollide()
+          .radius(d => d.r + 1)
+          .iterations(3)
+      )
+      .on("tick", ticked);
+
+    function ticked() {
+      nodes.forEach(d => {
+        d3.select(`#composition${d.id}`).attr(
+          "transform",
+          `translate(${d.x}, ${d.y})`
+        );
+
+        // d3.select(`#circleComposition${d.id}`).attr("r", d.r);
+      });
+    }
+
+    console.log("nodes", nodes);
 
     // Glow ////////////////////////////////////////////////////////////////
     const defs = svg.append("defs");
@@ -177,18 +249,22 @@ function init(files) {
     ///////////////////////////////////////////////////////////////////////////
     // Draw ///////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
-    drawStar(starData, orientation);
+    // drawStar(chartContainer, starData, orientation, true);
 
     // Draw functions /////////////////////////////////////////////////////////
-    function drawStar(data, orientation) {
+    function drawStar(container, data, orientation, complete) {
+      // const color = complete
+      //   ? colors[d3.randomInt(colors.length)()]
+      //   : "#fffed4";
       const color = colors[d3.randomInt(colors.length)()];
-      getCoordinates(data, orientation);
+
+      getCoordinates(data, orientation, complete);
 
       // Add composition audio
       audioObjects["composition"] = new Audio(`./audios/${data.pieza_path}`);
 
       // Containers ///////////////////////////////////////////////////////////
-      const starContainer = chartContainer.append("g");
+      const starContainer = container.append("g");
 
       // Students /////////////////////////////////////////////////////////////
       const studentGroup = starContainer
@@ -197,40 +273,39 @@ function init(files) {
         .join("g")
         .attr("class", "studentGroup");
 
+      const transparency = d3.randomUniform(0.05, 0.3)();
+      console.log("transparency", transparency);
       studentGroup
         .append("circle")
         .attr("cx", d => d.x)
         .attr("cy", d => d.y)
         .attr("r", d => d.r)
-        .style("fill", chroma(color).darken(2))
+        .style("fill", complete ? chroma(color).darken(1.5) : color)
+        .style("opacity", complete ? 1 : transparency)
         .style("filter", "url(#glow)");
-      // .style("stroke", highlightColor)
-      // .style("stroke-width", "3px");
 
-      studentGroup
-        .append("text")
-        .attr("x", d => d.x)
-        .attr("y", d => d.y)
-        .attr("dy", "0.35em")
-        // .attr("y", d => (d.a > PI ? d.y + d.r + 20 : d.y - d.r - 20))
-        // .attr("dy", d => (d.a > PI ? "0em" : "0.7em"))
-        .attr("text-anchor", "middle")
-        .style("font", "14px arial")
-        .style("stroke", "#121212")
-        .style("stroke-width", "2px")
-        .text(d => d.id);
+      if (complete) {
+        studentGroup
+          .append("text")
+          .attr("x", d => d.x)
+          .attr("y", d => d.y)
+          .attr("dy", "0.35em")
+          .attr("text-anchor", "middle")
+          .style("font", "14px arial")
+          .style("stroke", "#121212")
+          .style("stroke-width", "2px")
+          .text(d => d.id);
 
-      studentGroup
-        .append("text")
-        .attr("x", d => d.x)
-        .attr("y", d => d.y)
-        .attr("dy", "0.35em")
-        // .attr("y", d => (d.a > PI ? d.y + d.r + 20 : d.y - d.r - 20))
-        // .attr("dy", d => (d.a > PI ? "0em" : "0.7em"))
-        .attr("text-anchor", "middle")
-        .style("font", "14px arial")
-        .style("fill", txtRelativeColor)
-        .text(d => d.id);
+        studentGroup
+          .append("text")
+          .attr("x", d => d.x)
+          .attr("y", d => d.y)
+          .attr("dy", "0.35em")
+          .attr("text-anchor", "middle")
+          .style("font", "14px arial")
+          .style("fill", txtRelativeColorLight)
+          .text(d => d.id);
+      }
 
       // Links ////////////////////////////////////////////////////////////////
       const linkLines = studentGroup
@@ -246,9 +321,10 @@ function init(files) {
         })
         .attr("y2", d => d.targetY)
         .style("stroke", d =>
-          d.usada === 1 ? chroma(color).darken(1.8) : chroma(color).darken(2.5)
+          d.usada === 1 ? chroma(color).darken(1.5) : chroma(color).darken(2)
         )
-        .style("stroke-width", d => (d.usada === 1 ? 3 : 1))
+        .style("stroke-width", d => (d.usada === 1 && complete ? 3 : 1))
+        .style("opacity", complete ? 1 : transparency)
         .lower();
 
       // Parientes ////////////////////////////////////////////////////////////
@@ -257,14 +333,20 @@ function init(files) {
         .data(d => Object.values(d.parientes))
         .join("g")
         .attr("class", "relativeGroup")
-        .style("cursor", d => (d.usada === 1 ? "pointer" : "default"));
-
-      relativeGroup
-        .append("title")
-        .text(
-          d =>
-            `${d.frase}${d.frase && d.significado ? ":" : ""} ${d.significado}`
+        .style("cursor", d =>
+          d.usada === 1 && complete ? "pointer" : "default"
         );
+
+      if (complete) {
+        relativeGroup
+          .append("title")
+          .text(
+            d =>
+              `${d.frase}${d.frase && d.significado ? ":" : ""} ${
+                d.significado
+              }`
+          );
+      }
 
       const relativeWithAudio = relativeGroup.filter(d => d.usada === 1);
 
@@ -275,7 +357,7 @@ function init(files) {
         .attr("cx", d => d.x)
         .attr("cy", d => d.y)
         .attr("r", d => d.r * 2.8)
-        .style("fill", chroma(color).darken(2))
+        .style("fill", complete ? chroma(color).darken(1.5) : color)
         .style("fill-opacity", 0.08)
         .style("filter", "url(#glow)")
         .style("pointer-events", "none")
@@ -288,183 +370,229 @@ function init(files) {
         .attr("cy", d => d.y)
         .attr("r", d => d.r)
         .style("fill", d =>
-          d.usada === 1 ? chroma(color).darken(1.8) : chroma(color).darken(2.5)
+          complete
+            ? d.usada === 1
+              ? chroma(color).darken(1.5)
+              : chroma(color).darken(2)
+            : color
         )
+        .style("opacity", complete ? 1 : transparency)
         .style("filter", "url(#glow)");
 
-      // play icon in each relative with audio
-      relativeWithAudio.each(function (d) {
-        const sanitizedId = sanitizeId(d.id);
-        const relativeElement = d3.select(this);
-        const audio = new Audio(`./audios/${d.grabacion_path}`);
-        audioObjects[sanitizedId] = audio;
+      if (complete) {
+        // play icon in each relative with audio
+        relativeWithAudio.each(function (d) {
+          const sanitizedId = sanitizeId(d.id);
+          const relativeElement = d3.select(this);
+          const audio = new Audio(`./audios/${d.grabacion_path}`);
+          audioObjects[sanitizedId] = audio;
 
-        // Add ended event listener
-        audio.addEventListener("ended", function () {
-          d3.select("#playIcon" + sanitizedId).style("display", "block");
-          d3.select("#pauseIcon" + sanitizedId).style("display", "none");
-          d3.select(`#aureola-${sanitizedId}`).style("display", "none");
+          // Add ended event listener
+          audio.addEventListener("ended", function () {
+            d3.select("#playIcon" + sanitizedId).style("display", "block");
+            d3.select("#pauseIcon" + sanitizedId).style("display", "none");
+            d3.select(`#aureola-${sanitizedId}`).style("display", "none");
+          });
+
+          drawPlayPauseIcon(relativeElement, d.x, d.y, d.r, sanitizedId);
+          handlePlayPause(relativeElement, sanitizedId);
         });
 
-        drawPlayPauseIcon(relativeElement, d.x, d.y, d.r, sanitizedId);
-        handlePlayPause(relativeElement, sanitizedId);
-      });
+        const relativeTextsGroup = relativeGroup
+          .append("g")
+          .attr("transform", d => `translate(${d.textX}, ${d.textY})`);
 
-      const relativeTextsGroup = relativeGroup
-        .append("g")
-        .attr("transform", d => `translate(${d.textX}, ${d.textY})`);
-
-      relativeTextsGroup
-        .append("text")
-        .attr("transform", function (d) {
-          return `rotate(${
-            d.a > PI_2 && d.a < PI_2 * 3
-              ? radToDegrees(d.a + PI)
-              : radToDegrees(d.a)
-          })`;
-        })
-        .attr("y", -7)
-        .attr("dy", "0.35em")
-        .attr("text-anchor", d =>
-          d.a > PI_2 && d.a < PI_2 * 3 ? "end" : "start"
-        )
-        .style("font", "12px arial")
-        .style("fill", txtRelativeColor)
-        .text(d => d.parentesco);
-
-      relativeTextsGroup
-        .append("text")
-        .attr(
-          "transform",
-          d =>
-            `rotate(${
+        relativeTextsGroup
+          .append("text")
+          .attr("transform", function (d) {
+            return `rotate(${
               d.a > PI_2 && d.a < PI_2 * 3
                 ? radToDegrees(d.a + PI)
                 : radToDegrees(d.a)
-            })`
-        )
-        .attr("y", 7)
-        .attr("dy", "0.35em")
-        .attr("text-anchor", d =>
-          d.a > PI_2 && d.a < PI_2 * 3 ? "end" : "start"
-        )
-        .style("font", "10px arial")
-        .style("fill", txtOriginColor)
-        .text(d => d.origen);
+            })`;
+          })
+          .attr("y", -7)
+          .attr("dy", "0.35em")
+          .attr("text-anchor", d =>
+            d.a > PI_2 && d.a < PI_2 * 3 ? "end" : "start"
+          )
+          .style("font", "12px arial")
+          .style("fill", d =>
+            d.usada == 1 ? txtRelativeColorLight : txtRelativeColorDark
+          )
+          .text(d => d.parentesco);
+
+        relativeTextsGroup
+          .append("text")
+          .attr(
+            "transform",
+            d =>
+              `rotate(${
+                d.a > PI_2 && d.a < PI_2 * 3
+                  ? radToDegrees(d.a + PI)
+                  : radToDegrees(d.a)
+              })`
+          )
+          .attr("y", 7)
+          .attr("dy", "0.35em")
+          .attr("text-anchor", d =>
+            d.a > PI_2 && d.a < PI_2 * 3 ? "end" : "start"
+          )
+          .style("font", "10px arial")
+          .style("fill", txtOriginColor)
+          .text(d => d.origen);
+      }
 
       /////////////////////////////////////////////////////////////////////////
       // Audio composition controls ///////////////////////////////////////////
       /////////////////////////////////////////////////////////////////////////
-      const yPosControls = R1 + R2 + 5 * orderD;
-      const audioControls = starContainer
-        .append("g")
-        .attr("id", "audioControls")
-        .attr("transform", `translate(${0}, ${yPosControls})`);
+      if (complete) {
+        const audioControls = starContainer
+          .append("g")
+          .attr("id", "audioControls")
+          .attr("transform", `translate(${0}, ${yPosControls})`);
 
-      // Play/Pause Button ////////////////////////////////////////////////////
-      const compositionPlayPauseButtonContainer = audioControls
-        .append("g")
-        .attr("id", "compositionPlayPauseButtonContainer");
+        // Play/Pause Button ////////////////////////////////////////////////////
+        const compositionPlayPauseButtonContainer = audioControls
+          .append("g")
+          .attr("id", "compositionPlayPauseButtonContainer");
 
-      compositionPlayPauseButtonContainer
-        .append("circle")
-        .attr("id", "playComposition")
-        .attr("cx", 0)
-        .attr("cy", 0)
-        .attr("r", compositionPlayR)
-        .style("fill", chroma(color));
+        compositionPlayPauseButtonContainer
+          .append("circle")
+          .attr("id", "playComposition")
+          .attr("cx", 0)
+          .attr("cy", 0)
+          .attr("r", compositionPlayR)
+          .style("fill", buttonColor);
 
-      drawPlayPauseIcon(
-        compositionPlayPauseButtonContainer,
-        0,
-        0,
-        compositionPlayR,
-        "composition"
-      );
+        drawPlayPauseIcon(
+          compositionPlayPauseButtonContainer,
+          0,
+          0,
+          compositionPlayR,
+          "composition"
+        );
 
-      handlePlayPause(compositionPlayPauseButtonContainer, "composition");
+        handlePlayPause(compositionPlayPauseButtonContainer, "composition");
 
-      // Next button //////////////////////////////////////////////////////////
-      const compositionNextButtonContainer = audioControls
-        .append("g")
-        .attr("id", "nextButton")
-        .attr("transform", `translate(${50}, 0)`);
+        // Next button //////////////////////////////////////////////////////////
+        const compositionNextButtonContainer = audioControls
+          .append("g")
+          .attr("id", "nextButton")
+          .attr("transform", `translate(${50}, 0)`);
 
-      compositionNextButtonContainer
-        .append("circle")
-        .attr("cx", 0)
-        .attr("cy", 0)
-        .attr("r", nextPrevR)
-        .style("fill", chroma(color));
+        compositionNextButtonContainer
+          .append("circle")
+          .attr("cx", 0)
+          .attr("cy", 0)
+          .attr("r", nextPrevR)
+          .style("fill", buttonColor);
 
-      drawNextPreviousIcon(compositionNextButtonContainer, nextPrevR, "next");
+        drawNextPreviousIcon(compositionNextButtonContainer, nextPrevR, "next");
 
-      // Previous button //////////////////////////////////////////////////////
-      const compositionPreviousButtonContainer = audioControls
-        .append("g")
-        .attr("id", "previousButton")
-        .attr("transform", `translate(${-50}, 0)`);
+        // Previous button //////////////////////////////////////////////////////
+        const compositionPreviousButtonContainer = audioControls
+          .append("g")
+          .attr("id", "previousButton")
+          .attr("transform", `translate(${-50}, 0)`);
 
-      compositionPreviousButtonContainer
-        .append("circle")
-        .attr("cx", 0)
-        .attr("cy", 0)
-        .attr("r", nextPrevR)
-        .style("fill", chroma(color));
+        compositionPreviousButtonContainer
+          .append("circle")
+          .attr("cx", 0)
+          .attr("cy", 0)
+          .attr("r", nextPrevR)
+          .style("fill", buttonColor);
 
-      drawNextPreviousIcon(
-        compositionPreviousButtonContainer,
-        nextPrevR,
-        "previous"
-      );
+        drawNextPreviousIcon(
+          compositionPreviousButtonContainer,
+          nextPrevR,
+          "previous"
+        );
 
-      // Add info /////////////////////////////////////////////////////////////
-      // Centro
-      const centroText = audioControls
-        .append("text")
-        .attr("x", 0)
-        .attr("y", 45)
-        .attr("text-anchor", "middle")
-        .style("font", "14px arial")
-        .style("fill", txtRelativeColor)
-        .text(data.centro);
+        // Add info /////////////////////////////////////////////////////////////
+        // Centro
+        const centroText = audioControls
+          .append("text")
+          .attr("x", 0)
+          .attr("y", 45)
+          .attr("text-anchor", "middle")
+          .style("font", "14px arial")
+          .style("fill", txtRelativeColorLight)
+          .text(data.centro);
 
-      // Docente + Curso
-      const docenteText = audioControls
-        .append("text")
-        .attr("x", 0)
-        .attr("y", 60)
-        .attr("text-anchor", "middle")
-        .style("font", "10px arial")
-        .style("fill", txtRelativeColor)
-        .text(data.docente + " - " + data.curso);
+        // Docente + Curso
+        const docenteText = audioControls
+          .append("text")
+          .attr("x", 0)
+          .attr("y", 60)
+          .attr("text-anchor", "middle")
+          .style("font", "10px arial")
+          .style("fill", txtRelativeColorDark)
+          .text(data.docente + " - " + data.curso);
 
-      // Add event listeners //////////////////////////////////////////////////
-      d3.select("#nextButton").on("click", function () {
-        // Pause all  audios
-        Object.keys(audioObjects).forEach(key => {
-          audioObjects[key].pause();
+        // Add event listeners //////////////////////////////////////////////////
+        d3.select("#nextButton").on("click", function () {
+          // Pause all  audios
+          Object.keys(audioObjects).forEach(key => {
+            audioObjects[key].pause();
+          });
+          // Reset audioObjects
+          audioObjects = {};
+
+          // Update star
+          oldId = currentId;
+          currentId = currentId >= numberOfCompositions ? 1 : currentId + 1;
+
+          const oldContainer = d3.select(`#composition${oldId}`);
+          const currentContainer = d3.select(`#composition${currentId}`);
+          oldContainer.selectAll("*").remove();
+          currentContainer.selectAll("*").remove();
+          const oldNode = nodes.filter(d => d.id == oldId)[0];
+          const currentNode = nodes.filter(d => d.id == currentId)[0];
+
+          oldNode.fx = null; // Remove fixed x-coordinate
+          oldNode.fy = null; // Remove fixed y-coordinate
+          currentNode.fx = 0;
+          currentNode.fy = 0;
+          // currentNode.x = 0;
+          // currentNode.y = 0;
+
+          drawStar(oldContainer, oldNode, orientation, false);
+          drawStar(currentContainer, currentNode, orientation, true);
+          simulation.nodes(nodes);
+          simulation.alpha(0.1).restart();
         });
-        // Reset audioObjects
-        audioObjects = {};
 
-        // Update star
-        currentId = currentId >= numberOfCompositions ? 1 : currentId + 1;
-        drawGraph(allCompositions);
-      });
+        d3.select("#previousButton").on("click", function () {
+          // Pause all  audios
+          Object.keys(audioObjects).forEach(key => {
+            audioObjects[key].pause();
+          });
+          // Reset audioObjects
+          audioObjects = {};
 
-      d3.select("#previousButton").on("click", function () {
-        // Pause all  audios
-        Object.keys(audioObjects).forEach(key => {
-          audioObjects[key].pause();
+          // Update star
+          oldId = currentId;
+          currentId = currentId <= 1 ? numberOfCompositions : currentId - 1;
+
+          const oldContainer = d3.select(`#composition${oldId}`);
+          const currentContainer = d3.select(`#composition${currentId}`);
+          oldContainer.selectAll("*").remove();
+          currentContainer.selectAll("*").remove();
+          const oldNode = nodes.filter(d => d.id == oldId)[0];
+          const currentNode = nodes.filter(d => d.id == currentId)[0];
+
+          oldNode.fx = null; // Remove fixed x-coordinate
+          oldNode.fy = null; // Remove fixed y-coordinate
+          currentNode.fx = 0;
+          currentNode.fy = 0;
+
+          drawStar(oldContainer, oldNode, orientation, false);
+          drawStar(currentContainer, currentNode, orientation, true);
+          simulation.nodes(nodes);
+          simulation.alpha(0.1).restart();
         });
-        // Reset audioObjects
-        audioObjects = {};
-
-        // Update star
-        currentId = currentId <= 1 ? numberOfCompositions : currentId - 1;
-        drawGraph(allCompositions);
-      });
+      }
     }
 
     function drawPlayPauseIcon(container, x, y, r, id) {
@@ -643,8 +771,19 @@ function formatData(dataRaw) {
   return data;
 }
 
-function getCoordinates(data, orientation) {
-  const initA = orientation === "horizontal" ? 0 : PI_2;
+function getCoordinates(data, orientation, complete) {
+  console.log("data", data);
+  const initA = complete
+    ? orientation === "horizontal"
+      ? 0
+      : PI_2
+    : d3.randomUniform(0, PI2)();
+  // const initA = orientation === "horizontal" ? 0 : PI_2;
+
+  const factor = complete ? 1 : d3.randomUniform(0.2, 0.5)();
+  // const factor = complete ? 1 : 0.2;
+  data.r = (R1 + R2 + 4 * orderD) * factor;
+  // data.r = (R1 + R2 + 5 * orderD) * 0.2;
 
   Object.values(data.alumnos).forEach((student, i, studentArray) => {
     const numberOfStudents = studentArray.length;
@@ -653,9 +792,9 @@ function getCoordinates(data, orientation) {
     let fanA;
 
     const studenA = initA + (PI2 / studentArray.length) * i;
-    student.x = R1 * Math.cos(studenA);
-    student.y = R1 * Math.sin(studenA);
-    student.r = studentR;
+    student.x = R1 * Math.cos(studenA) * factor;
+    student.y = R1 * Math.sin(studenA) * factor;
+    student.r = studentR * factor;
     student.a = studenA;
 
     Object.values(student.parientes).forEach((relative, i, relativeArray) => {
@@ -672,15 +811,18 @@ function getCoordinates(data, orientation) {
           : initA + (fanA / (relativeArray.length - 1)) * i;
 
       const orden = relative.orden ? relative.orden : 2;
-      if (!relative.orden)
-        console.log(
-          "Alerta! No se ha encontrado orden para el pariente: ",
-          relative
-        );
+      // if (!relative.orden)
+      //   console.log(
+      //     "Alerta! No se ha encontrado orden para el pariente: ",
+      //     relative
+      //   );
 
-      relative.x = student.x + (R2 + orderD * orden) * Math.cos(relativeA);
-      relative.y = student.y + (R2 + orderD * orden) * Math.sin(relativeA);
-      relative.r = relative.usada === 1 ? relativePlayR : relativeR;
+      relative.x =
+        student.x + (R2 + orderD * orden) * Math.cos(relativeA) * factor;
+      relative.y =
+        student.y + (R2 + orderD * orden) * Math.sin(relativeA) * factor;
+      relative.r =
+        relative.usada === 1 ? relativePlayR * factor : relativeR * factor;
       relative.a = relativeA;
 
       relative.textX = relative.x + textD * Math.cos(relativeA);
