@@ -145,7 +145,6 @@ function init(files) {
     // Set up data ////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     const starData = data[currentId];
-    console.log("starData", JSON.stringify(starData));
     starData.fx = 0;
     starData.fy = 0;
 
@@ -183,7 +182,13 @@ function init(files) {
     //   .style("stroke", "red");
 
     const nodes = Object.values(data);
-    nodes.push({ id: "dummy", r: 90, fx: 0, fy: yPosControls });
+    nodes.push({ id: "controlsNode", r: 90, fx: 0, fy: yPosControls });
+    nodes.push({
+      id: "starNode",
+      r: R1 + R2 + 4 * orderD,
+      fx: 0,
+      fy: 0,
+    });
 
     nodes.forEach(d => {
       const container = chartContainer
@@ -191,17 +196,10 @@ function init(files) {
         .attr("id", `composition${d.id}`)
         .attr("transform", `translate(${center.x}, ${center.y})`);
 
-      // container
-      //   .append("circle")
-      //   .attr("id", `circleComposition${d.id}`)
-      //   .attr("cx", 0)
-      //   .attr("cy", 0)
-      //   .style("fill", "none")
-      //   .style("stroke", "white");
-
       // draw simple stars
-      if (d.id === "dummy") {
-        console.log("dummy node");
+      if (d.id === "controlsNode" || d.id === "starNode") {
+        console.log("controlsNode");
+        console.log("starNode");
       } else if (d.id != currentId) {
         drawStar(container, data[d.id], orientation, false);
       } else {
@@ -209,13 +207,15 @@ function init(files) {
       }
     });
 
+    // drawStar(chartContainer, data[currentId], orientation, true);
+
     ///////////////////////////////////////////////////////////////////////////
     // Simulation /////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     const simulation = d3
       .forceSimulation(nodes)
-      .alphaTarget(0.15) // stay hot
-      .velocityDecay(0.4) // low friction
+      .alphaTarget(0.2) // stay hot
+      .velocityDecay(0.7) // low friction
       .force("x", d3.forceX().strength(0.008))
       .force("y", d3.forceY().strength(0.05))
       .force(
@@ -228,17 +228,19 @@ function init(files) {
       .on("tick", ticked);
 
     function ticked() {
-      nodes.forEach(d => {
-        d3.select(`#composition${d.id}`).attr(
-          "transform",
-          `translate(${d.x}, ${d.y})`
-        );
+      nodes
+        .filter(d => d.id !== currentId)
+        .forEach(d => {
+          if (d.id !== currentId) {
+            d3.select(`#composition${d.id}`).attr(
+              "transform",
+              `translate(${d.x}, ${d.y})`
+            );
+          }
 
-        // d3.select(`#circleComposition${d.id}`).attr("r", d.r);
-      });
+          // d3.select(`#circleComposition${d.id}`).attr("r", d.r);
+        });
     }
-
-    console.log("nodes", nodes);
 
     // Glow ////////////////////////////////////////////////////////////////
     const defs = svg.append("defs");
@@ -257,6 +259,7 @@ function init(files) {
       //   ? colors[d3.randomInt(colors.length)()]
       //   : "#fffed4";
       const color = colors[d3.randomInt(colors.length)()];
+      const transparency = d3.randomUniform(0.05, 0.3)();
 
       getCoordinates(data, orientation, complete);
 
@@ -271,17 +274,20 @@ function init(files) {
         .selectAll(".studentGroup")
         .data(Object.values(data.alumnos))
         .join("g")
-        .attr("class", "studentGroup");
+        .attr("class", "studentGroup")
+        .style("opacity", complete ? 0 : transparency);
 
-      const transparency = d3.randomUniform(0.05, 0.3)();
-      console.log("transparency", transparency);
+      studentGroup
+        .transition()
+        .duration(2000)
+        .style("opacity", complete ? 1 : transparency);
+
       studentGroup
         .append("circle")
         .attr("cx", d => d.x)
         .attr("cy", d => d.y)
         .attr("r", d => d.r)
         .style("fill", complete ? chroma(color).darken(1.5) : color)
-        .style("opacity", complete ? 1 : transparency)
         .style("filter", "url(#glow)");
 
       if (complete) {
@@ -324,7 +330,6 @@ function init(files) {
           d.usada === 1 ? chroma(color).darken(1.5) : chroma(color).darken(2)
         )
         .style("stroke-width", d => (d.usada === 1 && complete ? 3 : 1))
-        .style("opacity", complete ? 1 : transparency)
         .lower();
 
       // Parientes ////////////////////////////////////////////////////////////
@@ -376,7 +381,6 @@ function init(files) {
               : chroma(color).darken(2)
             : color
         )
-        .style("opacity", complete ? 1 : transparency)
         .style("filter", "url(#glow)");
 
       if (complete) {
@@ -384,6 +388,7 @@ function init(files) {
         relativeWithAudio.each(function (d) {
           const sanitizedId = sanitizeId(d.id);
           const relativeElement = d3.select(this);
+
           const audio = new Audio(`./audios/${d.grabacion_path}`);
           audioObjects[sanitizedId] = audio;
 
@@ -772,7 +777,6 @@ function formatData(dataRaw) {
 }
 
 function getCoordinates(data, orientation, complete) {
-  console.log("data", data);
   const initA = complete
     ? orientation === "horizontal"
       ? 0
@@ -782,7 +786,7 @@ function getCoordinates(data, orientation, complete) {
 
   const factor = complete ? 1 : d3.randomUniform(0.2, 0.5)();
   // const factor = complete ? 1 : 0.2;
-  data.r = (R1 + R2 + 4 * orderD) * factor;
+  data.r = complete ? 0 : (R1 + R2 + 4 * orderD) * factor;
   // data.r = (R1 + R2 + 5 * orderD) * 0.2;
 
   Object.values(data.alumnos).forEach((student, i, studentArray) => {
