@@ -105,14 +105,6 @@ document.addEventListener("DOMContentLoaded", function () {
     drawGraph(containerSelector, allCompositions);
 
     function drawGraph(selector, data) {
-      console.log("selector", selector);
-      ///////////////////////////////////////////////////////////////////////////
-      // Set up data ////////////////////////////////////////////////////////////
-      ///////////////////////////////////////////////////////////////////////////
-      const starData = data[currentId];
-      starData.fx = 0;
-      starData.fy = 0;
-
       ///////////////////////////////////////////////////////////////////////////
       // Set up svg /////////////////////////////////////////////////////////////
       ///////////////////////////////////////////////////////////////////////////
@@ -123,7 +115,7 @@ document.addEventListener("DOMContentLoaded", function () {
       console.log("svgWidth", svgWidth);
 
       const center = { x: svgWidth / 2, y: svgHeight / 2 };
-      const orientation = svgWidth > svgHeight ? "horizontal" : "vertical";
+      const orientation = svgWidth >= svgHeight ? "horizontal" : "vertical";
 
       // Clear ///////////////////////////////////////////////////////////////////
       d3.select(`#${selector}`).selectAll("*").remove();
@@ -149,33 +141,45 @@ document.addEventListener("DOMContentLoaded", function () {
       //   .style("fill", "none")
       //   .style("stroke", "red");
 
+      // Set up nodes for simulation //////////////////////////////////////////
       const nodes = Object.values(data);
-      nodes.push({ id: "controlsNode", r: 90, fx: 0, fy: yPosControls });
+
+      // Add empty nodes to prevent stars to move behind the current
+      // node and the audio controls
+      nodes.push({
+        id: "controlsNode",
+        simulationR: 90,
+        fx: 0,
+        fy: yPosControls,
+      });
       nodes.push({
         id: "starNode",
-        r: R1 + R2 + 4 * orderD,
+        simulationR: R1 + R2 + 4 * orderD,
         fx: 0,
         fy: 0,
       });
 
+      // Draw background simple stars /////////////////////////////////////////
       nodes.forEach(d => {
         const container = chartContainer
           .append("g")
           .attr("id", `composition${d.id}`)
           .attr("transform", `translate(${center.x}, ${center.y})`);
 
-        // draw simple stars
-        if (d.id === "controlsNode" || d.id === "starNode") {
-          // console.log("controlsNode");
-          // console.log("starNode");
-        } else if (d.id != currentId) {
+        if (
+          d.id !== "controlsNode" &&
+          d.id !== "starNode" &&
+          d.id != currentId
+        ) {
           drawStar(container, data[d.id], orientation, false);
-        } else {
-          drawStar(container, data[d.id], orientation, true);
         }
       });
 
-      // drawStar(chartContainer, data[currentId], orientation, true);
+      // Draw complete star ///////////////////////////////////////////////////
+      const starContainer = chartContainer
+        .append("g")
+        .attr("id", `compositionCurrent${currentId}`);
+      drawStar(starContainer, data[currentId], orientation, true);
 
       ///////////////////////////////////////////////////////////////////////////
       // Simulation /////////////////////////////////////////////////////////////
@@ -190,7 +194,7 @@ document.addEventListener("DOMContentLoaded", function () {
           "collide",
           d3
             .forceCollide()
-            .radius(d => d.r + 1)
+            .radius(d => d.simulationR)
             .iterations(3)
         )
         .on("tick", ticked);
@@ -212,45 +216,44 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Glow ////////////////////////////////////////////////////////////////
       const defs = svg.append("defs");
-
       createGlowFilter(defs, "glow", 5);
       createShadowFilter(defs, "drop-shadow", 1);
 
       ///////////////////////////////////////////////////////////////////////////
       // Draw ///////////////////////////////////////////////////////////////////
       ///////////////////////////////////////////////////////////////////////////
-      // drawStar(chartContainer, starData, orientation, true);
 
       // Draw functions /////////////////////////////////////////////////////////
-      function drawStar(container, data, orientation, complete) {
+      function drawStar(container, starData, orientation, complete) {
         // const color = complete
         //   ? colors[d3.randomInt(colors.length)()]
         //   : "#fffed4";
         const color = colors[d3.randomInt(colors.length)()];
         const transparency = d3.randomUniform(0.05, 0.3)();
 
-        getCoordinates(data, orientation, complete);
-
-        // Add composition audio
-        audioObjects["composition"] = new Audio(
-          `${audiosUrl}${data.pieza_path}`
-        );
+        getCoordinates(starData, orientation, complete);
 
         // Containers ///////////////////////////////////////////////////////////
-        const starContainer = container.append("g");
+        const starContainer = container
+          .append("g")
+          .attr(
+            "id",
+            complete ? `starCurrent${starData.id}` : `star${starData.id}`
+          )
+          // .style("opacity", complete ? 0 : transparency);
+          .style("opacity", 0);
+
+        starContainer
+          .transition()
+          .duration(duration)
+          .style("opacity", complete ? 1 : transparency);
 
         // Students /////////////////////////////////////////////////////////////
         const studentGroup = starContainer
           .selectAll(".studentGroup")
-          .data(Object.values(data.alumnos))
+          .data(Object.values(starData.alumnos))
           .join("g")
-          .attr("class", "studentGroup")
-          .style("opacity", complete ? 0 : transparency);
-
-        studentGroup
-          .transition()
-          .duration(duration)
-          .style("opacity", complete ? 1 : transparency);
+          .attr("class", "studentGroup");
 
         studentGroup
           .append("circle")
@@ -259,6 +262,12 @@ document.addEventListener("DOMContentLoaded", function () {
           .attr("r", d => d.r)
           .style("fill", complete ? chroma(color).darken(1.5) : color)
           .style("filter", "url(#glow)");
+
+        // starContainer
+        //   .append("text")
+        //   .style("fill", "white")
+        //   .style("font-size", "30px")
+        //   .text(starData.id);
 
         if (complete) {
           studentGroup
@@ -360,7 +369,6 @@ document.addEventListener("DOMContentLoaded", function () {
             const relativeElement = d3.select(this);
 
             const audio = new Audio(`${audiosUrl}${d.grabacion_path}`);
-
             audioObjects[sanitizedId] = audio;
 
             // Add ended event listener
@@ -371,7 +379,7 @@ document.addEventListener("DOMContentLoaded", function () {
             });
 
             drawPlayPauseIcon(relativeElement, d.x, d.y, d.r, sanitizedId);
-            handlePlayPause(relativeElement, sanitizedId);
+            handlePlayPause(relativeElement, sanitizedId, audioObjects);
           });
 
           const relativeTextsGroup = relativeGroup
@@ -423,6 +431,13 @@ document.addEventListener("DOMContentLoaded", function () {
         // Audio composition controls ///////////////////////////////////////////
         /////////////////////////////////////////////////////////////////////////
         if (complete) {
+          const piezaId = starData.id;
+
+          // Add composition audio
+          audioObjects[piezaId] = new Audio(
+            `${audiosUrl}${starData.pieza_path}`
+          );
+
           const audioControls = starContainer
             .append("g")
             .attr("id", "audioControls")
@@ -446,15 +461,19 @@ document.addEventListener("DOMContentLoaded", function () {
             0,
             0,
             compositionPlayR,
-            "composition"
+            piezaId
           );
 
-          handlePlayPause(compositionPlayPauseButtonContainer, "composition");
+          handlePlayPause(
+            compositionPlayPauseButtonContainer,
+            piezaId,
+            audioObjects
+          );
 
           // Next button //////////////////////////////////////////////////////////
           const compositionNextButtonContainer = audioControls
             .append("g")
-            .attr("id", "nextButton")
+            .attr("id", "nextButton" + piezaId)
             .attr("transform", `translate(${50}, 0)`);
 
           compositionNextButtonContainer
@@ -473,7 +492,7 @@ document.addEventListener("DOMContentLoaded", function () {
           // Previous button //////////////////////////////////////////////////////
           const compositionPreviousButtonContainer = audioControls
             .append("g")
-            .attr("id", "previousButton")
+            .attr("id", "previousButton" + piezaId)
             .attr("transform", `translate(${-50}, 0)`);
 
           compositionPreviousButtonContainer
@@ -498,7 +517,7 @@ document.addEventListener("DOMContentLoaded", function () {
             .attr("text-anchor", "middle")
             .style("font", "14px arial")
             .style("fill", txtRelativeColorLight)
-            .text(data.centro);
+            .text(starData.centro);
 
           // Docente + Curso
           const docenteText = audioControls
@@ -508,10 +527,11 @@ document.addEventListener("DOMContentLoaded", function () {
             .attr("text-anchor", "middle")
             .style("font", "10px arial")
             .style("fill", txtRelativeColorDark)
-            .text(data.docente + " - " + data.curso);
+            .text(starData.docente + " - " + starData.curso);
 
           // Add event listeners //////////////////////////////////////////////////
-          d3.select("#nextButton").on("click", function () {
+          d3.select("#nextButton" + piezaId).on("click", function () {
+            console.log("next button");
             // Pause all  audios
             Object.keys(audioObjects).forEach(key => {
               audioObjects[key].pause();
@@ -519,31 +539,53 @@ document.addEventListener("DOMContentLoaded", function () {
             // Reset audioObjects
             audioObjects = {};
 
-            // Update star
-            oldId = currentId;
+            // Update ids
+            previousId = currentId;
             currentId = currentId >= numberOfCompositions ? 1 : currentId + 1;
 
-            const oldContainer = d3.select(`#composition${oldId}`);
-            const currentContainer = d3.select(`#composition${currentId}`);
-            oldContainer.selectAll("*").remove();
-            currentContainer.selectAll("*").remove();
-            const oldNode = nodes.filter(d => d.id == oldId)[0];
-            const currentNode = nodes.filter(d => d.id == currentId)[0];
+            // Erase current star from background
+            // d3.select(`#composition${currentId}`).selectAll("*").remove();
 
-            oldNode.fx = null; // Remove fixed x-coordinate
-            oldNode.fy = null; // Remove fixed y-coordinate
-            currentNode.fx = 0;
-            currentNode.fy = 0;
-            // currentNode.x = 0;
-            // currentNode.y = 0;
+            d3.select(`#composition${currentId}`)
+              .select(`#star${currentId}`)
+              .transition()
+              .duration(duration)
+              .style("opacity", 0)
+              .on("end", function () {
+                // Remove the element after the transition ends
+                d3.select(this).remove();
+              });
 
-            drawStar(oldContainer, oldNode, orientation, false);
-            drawStar(currentContainer, currentNode, orientation, true);
+            // Redraw previous star in background
+            drawStar(
+              d3.select(`#composition${previousId}`),
+              data[previousId],
+              orientation,
+              false
+            );
+
             simulation.nodes(nodes);
             simulation.alpha(0.1).restart();
+
+            // Erase previous complete star
+            // d3.select(`#compositionCurrent${previousId}`).remove();
+            d3.select(`#starCurrent${previousId}`)
+              .transition()
+              .duration(duration)
+              .style("opacity", 0)
+              .on("end", function () {
+                // Remove the element after the transition ends
+                d3.select(this.parentNode).remove();
+              });
+
+            // Draw current complete star
+            const starContainer = chartContainer
+              .append("g")
+              .attr("id", `compositionCurrent${currentId}`);
+            drawStar(starContainer, data[currentId], orientation, true);
           });
 
-          d3.select("#previousButton").on("click", function () {
+          d3.select("#previousButton" + piezaId).on("click", function () {
             // Pause all  audios
             Object.keys(audioObjects).forEach(key => {
               audioObjects[key].pause();
@@ -552,25 +594,31 @@ document.addEventListener("DOMContentLoaded", function () {
             audioObjects = {};
 
             // Update star
-            oldId = currentId;
+            previousId = currentId;
             currentId = currentId <= 1 ? numberOfCompositions : currentId - 1;
 
-            const oldContainer = d3.select(`#composition${oldId}`);
-            const currentContainer = d3.select(`#composition${currentId}`);
-            oldContainer.selectAll("*").remove();
-            currentContainer.selectAll("*").remove();
-            const oldNode = nodes.filter(d => d.id == oldId)[0];
-            const currentNode = nodes.filter(d => d.id == currentId)[0];
+            // Erase current star from background
+            d3.select(`#composition${currentId}`).selectAll("*").remove();
 
-            oldNode.fx = null; // Remove fixed x-coordinate
-            oldNode.fy = null; // Remove fixed y-coordinate
-            currentNode.fx = 0;
-            currentNode.fy = 0;
+            // Redraw previous star in background
+            drawStar(
+              d3.select(`#composition${previousId}`),
+              data[previousId],
+              orientation,
+              false
+            );
 
-            drawStar(oldContainer, oldNode, orientation, false);
-            drawStar(currentContainer, currentNode, orientation, true);
             simulation.nodes(nodes);
             simulation.alpha(0.1).restart();
+
+            // Erase previous complete star
+            d3.select(`#compositionCurrent${previousId}`).remove();
+
+            // Draw current complete star
+            const starContainer = chartContainer
+              .append("g")
+              .attr("id", `compositionCurrent${currentId}`);
+            drawStar(starContainer, data[currentId], orientation, true);
           });
         }
       }
@@ -639,9 +687,15 @@ document.addEventListener("DOMContentLoaded", function () {
           .style("filter", "url(#drop-shadow)");
       }
 
-      function handlePlayPause(container, id) {
+      function handlePlayPause(container, id, audioObjects) {
         container.on("click", function () {
           const audio = audioObjects[id];
+
+          if (!audio) {
+            console.error(`Audio object for ID ${id} not found.`);
+            return;
+          }
+
           if (audio.paused) {
             // Pause all other audios
             Object.keys(audioObjects).forEach(key => {
@@ -672,29 +726,29 @@ document.addEventListener("DOMContentLoaded", function () {
       drawGraph(containerSelector, allCompositions);
     });
 
-    // Define the full screen and close buttons again but different from viz-modal.js to control de viz draw
-    const vizModalButtonDraw = document.getElementById("full-screen-viz-modal");
-    const closeVizModalBtnErase = document.getElementById("close-viz-modal");
+    // // Define the full screen and close buttons again but different from viz-modal.js to control de viz draw
+    // const vizModalButtonDraw = document.getElementById("full-screen-viz-modal");
+    // const closeVizModalBtnErase = document.getElementById("close-viz-modal");
 
-    // Draw viz in opened modal
-    if (vizModalButtonDraw) {
-      vizModalButtonDraw.addEventListener("click", function () {
-        requestAnimationFrame(function () {
-          requestAnimationFrame(function () {
-            containerSelector = "graph-modal";
-            d3.select(`#graph`).selectAll("*").remove();
-            drawGraph(containerSelector, allCompositions);
-          });
-        });
-      });
-    }
-    // Close modal
-    closeVizModalBtnErase.addEventListener("click", function () {
-      containerSelector = "graph";
-      d3.select(`#graph-modal`).selectAll("*").remove();
-      drawGraph(containerSelector, allCompositions);
-      // modalContainer.selectAll('svg').remove();
-    });
+    // // Draw viz in opened modal
+    // if (vizModalButtonDraw) {
+    //   vizModalButtonDraw.addEventListener("click", function () {
+    //     requestAnimationFrame(function () {
+    //       requestAnimationFrame(function () {
+    //         containerSelector = "graph-modal";
+    //         d3.select(`#graph`).selectAll("*").remove();
+    //         drawGraph(containerSelector, allCompositions);
+    //       });
+    //     });
+    //   });
+    // }
+    // // Close modal
+    // closeVizModalBtnErase.addEventListener("click", function () {
+    //   containerSelector = "graph";
+    //   d3.select(`#graph-modal`).selectAll("*").remove();
+    //   drawGraph(containerSelector, allCompositions);
+    //   // modalContainer.selectAll('svg').remove();
+    // });
   }
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -784,9 +838,8 @@ document.addEventListener("DOMContentLoaded", function () {
     // const initA = orientation === "horizontal" ? 0 : PI_2;
 
     const factor = complete ? 1 : d3.randomUniform(0.2, 0.5)();
-    // const factor = complete ? 1 : 0.2;
-    data.r = complete ? 0 : (R1 + R2 + 4 * orderD) * factor;
-    // data.r = (R1 + R2 + 5 * orderD) * 0.2;
+    // const factor = complete ? 1 : 0.2; // Borrar
+    data.simulationR = complete ? 0 : (R1 + R2 + 4 * orderD) * factor;
 
     Object.values(data.alumnos).forEach((student, i, studentArray) => {
       const numberOfStudents = studentArray.length;
