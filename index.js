@@ -23,20 +23,20 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Constants ////////////////////////////////////////////////////////////////
 
-  const duration = 2000;
+  const duration = 1500;
   const PI = Math.PI;
   const PI2 = PI * 2;
   const PI_2 = PI / 2;
 
-  const R1 = 30;
-  const R2 = 60;
-  const orderD = 30;
-  const studentR = 16;
-  const relativeR = 8;
-  const relativePlayR = 10;
+  const R1 = 40;
+  const R2 = 70;
+  const orderD = 35;
+  const studentR = 18;
+  const relativeR = 10;
+  const relativePlayR = 12;
   const compositionPlayR = 20;
   const nextPrevR = compositionPlayR * 0.7;
-  const yPosControls = R1 + R2 + 7 * orderD;
+  const yPosControls = R1 + R2 + 5 * orderD;
 
   let audioObjects = {};
 
@@ -837,7 +837,7 @@ document.addEventListener("DOMContentLoaded", function () {
       : d3.randomUniform(0, PI2)();
     // const initA = orientation === "horizontal" ? 0 : PI_2;
 
-    const factor = complete ? 1 : d3.randomUniform(0.2, 0.5)();
+    const factor = complete ? 1 : d3.randomUniform(0.2, 0.4)();
     // const factor = complete ? 1 : 0.2; // Borrar
     data.simulationR = complete ? 0 : (R1 + R2 + 4 * orderD) * factor;
 
