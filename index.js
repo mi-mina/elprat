@@ -23,7 +23,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Constants ////////////////////////////////////////////////////////////////
 
-  const duration = 1500;
+  const transitionDuration = 1500;
   const PI = Math.PI;
   const PI2 = PI * 2;
   const PI_2 = PI / 2;
@@ -32,7 +32,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const R2 = 70;
   const orderD = 35;
   const studentR = 18;
-  const relativeR = 10;
+  const relativeR = 8;
   const relativePlayR = 12;
   const compositionPlayR = 20;
   const nextPrevR = compositionPlayR * 0.7;
@@ -245,7 +245,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         starContainer
           .transition()
-          .duration(duration)
+          .duration(transitionDuration)
           .style("opacity", complete ? 1 : transparency);
 
         // Students /////////////////////////////////////////////////////////////
@@ -432,6 +432,13 @@ document.addEventListener("DOMContentLoaded", function () {
         /////////////////////////////////////////////////////////////////////////
         if (complete) {
           const piezaId = starData.id;
+          const progressBarWidth = 150;
+          const progressBarHeight = 2;
+          const timeHeight = 14;
+          const timeWidth = 40;
+          const horPadding = 10;
+          let progress = 0;
+          let mouseDownOnSlider = false;
 
           // Add composition audio
           audioObjects[piezaId] = new Audio(
@@ -508,12 +515,138 @@ document.addEventListener("DOMContentLoaded", function () {
             "previous"
           );
 
+          // Add progress bar /////////////////////////////////////////////////
+
+          const progressBarContainer = audioControls
+            .append("g")
+            .attr("id", "progressBarContainer")
+            .attr(
+              "transform",
+              `translate(${-progressBarWidth / 2}, ${compositionPlayR + 15})`
+            );
+
+          progressBarContainer
+            .append("rect")
+            .attr("width", progressBarWidth)
+            .attr("height", progressBarHeight)
+            .style("fill", "grey");
+
+          const progressCircle = progressBarContainer
+            .append("circle")
+            .attr("id", "progress" + piezaId)
+            .attr("cx", progressBarWidth * progress)
+            .attr("cy", progressBarHeight / 2)
+            .attr("r", 4)
+            .style("fill", "white")
+            .style("cursor", "pointer");
+
+          progressBarContainer
+            .append("rect")
+            .attr("x", -timeWidth - horPadding)
+            .attr("y", -timeHeight / 2 + progressBarHeight / 2)
+            .attr("width", timeWidth)
+            .attr("height", timeHeight)
+            .attr("rx", timeHeight / 2)
+            .attr("ry", timeHeight / 2)
+            .style("fill", "grey")
+            .style("fill-opacity", 0.1);
+
+          progressBarContainer
+            .append("rect")
+            .attr("x", progressBarWidth + horPadding)
+            .attr("y", -timeHeight / 2 + progressBarHeight / 2)
+            .attr("width", timeWidth)
+            .attr("height", timeHeight)
+            .attr("rx", timeHeight / 2)
+            .attr("ry", timeHeight / 2)
+            .style("fill", "grey")
+            .style("fill-opacity", 0.1);
+
+          progressBarContainer
+            .append("text")
+            .attr("id", "currentTime" + piezaId)
+            .attr("x", -horPadding - timeWidth / 2)
+            .attr("y", progressBarHeight / 2)
+            .attr("dy", "0.35em")
+            .attr("text-anchor", "middle")
+            .style("fill", "grey")
+            .style("font", "10px arial")
+            .text("00:00");
+
+          progressBarContainer
+            .append("text")
+            .attr("id", "duration" + piezaId)
+            .attr("x", progressBarWidth + horPadding + timeWidth / 2)
+            .attr("y", progressBarHeight / 2)
+            .attr("dy", "0.35em")
+            .attr("text-anchor", "middle")
+            .style("fill", "grey")
+            .style("font", "10px arial")
+            .text("00:00");
+
+          audioObjects[piezaId].addEventListener("loadeddata", () => {
+            progress = 0;
+            d3.select("#duration" + piezaId).text(
+              fmtTime(audioObjects[piezaId].duration)
+            );
+          });
+
+          audioObjects[piezaId].addEventListener("timeupdate", () => {
+            if (!mouseDownOnSlider) {
+              progress = audioObjects[piezaId]
+                ? audioObjects[piezaId].currentTime /
+                  audioObjects[piezaId].duration
+                : 0;
+
+              d3.select("#progress" + piezaId).attr(
+                "cx",
+                progressBarWidth * progress
+              );
+              if (audioObjects[piezaId])
+                d3.select("#currentTime" + piezaId).text(
+                  fmtTime(audioObjects[piezaId].currentTime)
+                );
+              if (audioObjects[piezaId])
+                d3.select("#duration" + piezaId).text(
+                  fmtTime(audioObjects[piezaId].duration)
+                );
+            }
+          });
+
+          // Add drag functionality to the progress bar
+          progressCircle.on("mousedown", function (event) {
+            mouseDownOnSlider = true;
+            const mouseX = d3.pointer(event, progressBarContainer.node())[0];
+            updateProgress(mouseX);
+          });
+
+          svg.on("mousemove", function (event) {
+            if (mouseDownOnSlider) {
+              const mouseX = d3.pointer(event, progressBarContainer.node())[0];
+              updateProgress(mouseX);
+            }
+          });
+
+          svg.on("mouseup", function () {
+            if (mouseDownOnSlider) {
+              mouseDownOnSlider = false;
+            }
+          });
+
+          function updateProgress(mouseX) {
+            const clampedX = Math.max(0, Math.min(mouseX, progressBarWidth));
+            const newProgress = clampedX / progressBarWidth;
+            progressCircle.attr("cx", clampedX);
+            audioObjects[piezaId].currentTime =
+              newProgress * audioObjects[piezaId].duration;
+          }
+
           // Add info /////////////////////////////////////////////////////////////
           // Centro
           const centroText = audioControls
             .append("text")
             .attr("x", 0)
-            .attr("y", 45)
+            .attr("y", compositionPlayR + 45)
             .attr("text-anchor", "middle")
             .style("font", "14px arial")
             .style("fill", txtRelativeColorLight)
@@ -523,15 +656,14 @@ document.addEventListener("DOMContentLoaded", function () {
           const docenteText = audioControls
             .append("text")
             .attr("x", 0)
-            .attr("y", 60)
+            .attr("y", compositionPlayR + 60)
             .attr("text-anchor", "middle")
-            .style("font", "10px arial")
+            .style("font", "12px arial")
             .style("fill", txtRelativeColorDark)
             .text(starData.docente + " - " + starData.curso);
 
           // Add event listeners //////////////////////////////////////////////////
           d3.select("#nextButton" + piezaId).on("click", function () {
-            console.log("next button");
             // Pause all  audios
             Object.keys(audioObjects).forEach(key => {
               audioObjects[key].pause();
@@ -549,7 +681,7 @@ document.addEventListener("DOMContentLoaded", function () {
             d3.select(`#composition${currentId}`)
               .select(`#star${currentId}`)
               .transition()
-              .duration(duration)
+              .duration(transitionDuration)
               .style("opacity", 0)
               .on("end", function () {
                 // Remove the element after the transition ends
@@ -571,7 +703,7 @@ document.addEventListener("DOMContentLoaded", function () {
             // d3.select(`#compositionCurrent${previousId}`).remove();
             d3.select(`#starCurrent${previousId}`)
               .transition()
-              .duration(duration)
+              .duration(transitionDuration)
               .style("opacity", 0)
               .on("end", function () {
                 // Remove the element after the transition ends
@@ -973,5 +1105,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
     feMergeShadow.append("feMergeNode").attr("in", "offsetBlur");
     feMergeShadow.append("feMergeNode").attr("in", "SourceGraphic");
+  }
+
+  function fmtTime(s) {
+    const d = new Date(0);
+
+    if (s > 0) {
+      d.setSeconds(s % 60);
+      d.setMinutes(s / 60);
+    }
+
+    return d.toISOString().slice(14, 19);
   }
 });
