@@ -93,14 +93,19 @@ document.addEventListener("DOMContentLoaded", function () {
 
   const colors = ["#ffffe0", "#feffbd", "#4dfffc", "#f73e7c"];
 
-  let oldId = undefined;
-  let currentId = 1;
+  let currentId;
+  let counter = 0;
   let containerSelector = "graph";
 
   function init(files) {
     const dataRaw = files[0];
     const allCompositions = formatData(dataRaw);
     const numberOfCompositions = Object.keys(allCompositions).length;
+
+    const compositionIds = d3.shuffle(
+      Object.keys(allCompositions).map(d => Number(d))
+    );
+    currentId = compositionIds[counter];
 
     drawGraph(containerSelector, allCompositions);
 
@@ -673,7 +678,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Update ids
             previousId = currentId;
-            currentId = currentId >= numberOfCompositions ? 1 : currentId + 1;
+            counter = counter >= numberOfCompositions - 1 ? 0 : counter + 1;
+            currentId = compositionIds[counter];
 
             // Erase current star from background
             // d3.select(`#composition${currentId}`).selectAll("*").remove();
@@ -727,7 +733,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Update star
             previousId = currentId;
-            currentId = currentId <= 1 ? numberOfCompositions : currentId - 1;
+            counter = counter <= 0 ? numberOfCompositions - 1 : counter - 1;
+            currentId = compositionIds[counter];
 
             // Erase current star from background
             d3.select(`#composition${currentId}`).selectAll("*").remove();
