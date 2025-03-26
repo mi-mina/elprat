@@ -116,8 +116,8 @@ document.addEventListener("DOMContentLoaded", function () {
       const container = document.getElementById(selector);
       const svgWidth = container.clientWidth;
       const svgHeight = container.clientHeight;
-      console.log("svgHeight", svgHeight);
-      console.log("svgWidth", svgWidth);
+      // console.log("svgHeight", svgHeight);
+      // console.log("svgWidth", svgWidth);
 
       const center = { x: svgWidth / 2, y: svgHeight / 2 };
       const orientation = svgWidth >= svgHeight ? "horizontal" : "vertical";
@@ -214,8 +214,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 `translate(${d.x}, ${d.y})`
               );
             }
-
-            // d3.select(`#circleComposition${d.id}`).attr("r", d.r);
           });
       }
 
@@ -230,9 +228,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Draw functions /////////////////////////////////////////////////////////
       function drawStar(container, starData, orientation, complete) {
-        // const color = complete
-        //   ? colors[d3.randomInt(colors.length)()]
-        //   : "#fffed4";
         const color = colors[d3.randomInt(colors.length)()];
         const transparency = d3.randomUniform(0.05, 0.3)();
 
@@ -245,7 +240,6 @@ document.addEventListener("DOMContentLoaded", function () {
             "id",
             complete ? `starCurrent${starData.id}` : `star${starData.id}`
           )
-          // .style("opacity", complete ? 0 : transparency);
           .style("opacity", 0);
 
         starContainer
@@ -259,6 +253,19 @@ document.addEventListener("DOMContentLoaded", function () {
           .data(Object.values(starData.alumnos))
           .join("g")
           .attr("class", "studentGroup");
+
+        // Big translucent circles
+        studentGroup
+          .append("circle")
+          .attr("class", `student-aureola-${starData.id}`)
+          .attr("cx", d => d.x)
+          .attr("cy", d => d.y)
+          .attr("r", d => d.r * 2.8)
+          .style("fill", complete ? chroma(color).darken(1.5) : color)
+          .style("fill-opacity", 0.08)
+          .style("filter", "url(#glow)")
+          .style("pointer-events", "none")
+          .style("display", "none");
 
         studentGroup
           .append("circle")
@@ -521,7 +528,6 @@ document.addEventListener("DOMContentLoaded", function () {
           );
 
           // Add progress bar /////////////////////////////////////////////////
-
           const progressBarContainer = audioControls
             .append("g")
             .attr("id", "progressBarContainer")
@@ -843,18 +849,23 @@ document.addEventListener("DOMContentLoaded", function () {
                 d3.select("#playIcon" + key).style("display", "block");
                 d3.select("#pauseIcon" + key).style("display", "none");
                 d3.select(`#aureola-${key}`).style("display", "none");
+                d3.selectAll(`.student-aureola-${key}`).style(
+                  "display",
+                  "none"
+                );
               }
             });
-
             audio.play();
             d3.select("#playIcon" + id).style("display", "none");
             d3.select("#pauseIcon" + id).style("display", "block");
             d3.select(`#aureola-${id}`).style("display", "block");
+            d3.selectAll(`.student-aureola-${id}`).style("display", "block");
           } else {
             audio.pause();
             d3.select("#playIcon" + id).style("display", "block");
             d3.select("#pauseIcon" + id).style("display", "none");
             d3.select(`#aureola-${id}`).style("display", "none");
+            d3.selectAll(`.student-aureola-${id}`).style("display", "none");
           }
         });
       }
