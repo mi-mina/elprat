@@ -165,20 +165,22 @@ document.addEventListener("DOMContentLoaded", function () {
       });
 
       // Draw background simple stars /////////////////////////////////////////
-      nodes.forEach(d => {
-        const container = chartContainer
-          .append("g")
-          .attr("id", `composition${d.id}`)
-          .attr("transform", `translate(${center.x}, ${center.y})`);
+      if (orientation === "horizontal") {
+        nodes.forEach(d => {
+          const container = chartContainer
+            .append("g")
+            .attr("id", `composition${d.id}`)
+            .attr("transform", `translate(${center.x}, ${center.y})`);
 
-        if (
-          d.id !== "controlsNode" &&
-          d.id !== "starNode" &&
-          d.id != currentId
-        ) {
-          drawStar(container, data[d.id], orientation, false);
-        }
-      });
+          if (
+            d.id !== "controlsNode" &&
+            d.id !== "starNode" &&
+            d.id != currentId
+          ) {
+            drawStar(container, data[d.id], orientation, false);
+          }
+        });
+      }
 
       // Draw complete star ///////////////////////////////////////////////////
       const starContainer = chartContainer
