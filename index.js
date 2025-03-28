@@ -27,16 +27,9 @@ document.addEventListener("DOMContentLoaded", function () {
   const PI = Math.PI;
   const PI2 = PI * 2;
   const PI_2 = PI / 2;
-
-  const R1 = 40;
-  const R2 = 70;
-  const orderD = 35;
-  const studentR = 18;
-  const relativeR = 8;
-  const relativePlayR = 12;
-  const compositionPlayR = 20;
-  const nextPrevR = compositionPlayR * 0.7;
-  const yPosControls = R1 + R2 + 5 * orderD;
+  let R1;
+  let R2;
+  let orderD;
 
   let audioObjects = {};
 
@@ -116,8 +109,19 @@ document.addEventListener("DOMContentLoaded", function () {
       const container = document.getElementById(selector);
       const svgWidth = container.clientWidth;
       const svgHeight = container.clientHeight;
-      // console.log("svgHeight", svgHeight);
+      console.log("svgHeight", svgHeight);
       // console.log("svgWidth", svgWidth);
+      // 590 -> 82%
+      // 130 -> 18%
+      // 720
+
+      R1 = svgHeight * 0.055;
+      R2 = svgHeight * 0.1;
+      orderD = svgHeight * 0.05;
+
+      const compositionPlayR = svgHeight * 0.03;
+      const nextPrevR = compositionPlayR * 0.7;
+      const yPosControls = R1 + R2 + 4.5 * orderD;
 
       const center = { x: svgWidth / 2, y: svgHeight / 2 };
       const orientation = svgWidth >= svgHeight ? "horizontal" : "vertical";
@@ -153,7 +157,7 @@ document.addEventListener("DOMContentLoaded", function () {
       // node and the audio controls
       nodes.push({
         id: "controlsNode",
-        simulationR: 90,
+        simulationR: svgHeight * 0.125,
         fx: 0,
         fy: yPosControls,
       });
@@ -277,20 +281,17 @@ document.addEventListener("DOMContentLoaded", function () {
           .style("fill", complete ? chroma(color).darken(1.5) : color)
           .style("filter", "url(#glow)");
 
-        // starContainer
-        //   .append("text")
-        //   .style("fill", "white")
-        //   .style("font-size", "30px")
-        //   .text(starData.id);
-
         if (complete) {
+          const studentNameTextSize =
+            svgHeight * 0.02 > 12 ? svgHeight * 0.02 : 12;
+
           studentGroup
             .append("text")
             .attr("x", d => d.x)
             .attr("y", d => d.y)
             .attr("dy", "0.35em")
             .attr("text-anchor", "middle")
-            .style("font", "14px arial")
+            .style("font", `${studentNameTextSize}px arial`)
             .style("stroke", "#121212")
             .style("stroke-width", "2px")
             .text(d => d.id);
@@ -301,7 +302,7 @@ document.addEventListener("DOMContentLoaded", function () {
             .attr("y", d => d.y)
             .attr("dy", "0.35em")
             .attr("text-anchor", "middle")
-            .style("font", "14px arial")
+            .style("font", `${studentNameTextSize}px arial`)
             .style("fill", txtRelativeColorLight)
             .text(d => d.id);
         }
@@ -400,6 +401,11 @@ document.addEventListener("DOMContentLoaded", function () {
             .append("g")
             .attr("transform", d => `translate(${d.textX}, ${d.textY})`);
 
+          const relativeTextSize =
+            svgHeight * 0.0175 > 12 ? svgHeight * 0.0175 : 12;
+          const originsTextSize =
+            svgHeight * 0.0155 > 10 ? svgHeight * 0.0155 : 10;
+
           relativeTextsGroup
             .append("text")
             .attr("transform", function (d) {
@@ -409,12 +415,12 @@ document.addEventListener("DOMContentLoaded", function () {
                   : radToDegrees(d.a)
               })`;
             })
-            .attr("y", -7)
+            .attr("y", -relativeTextSize / 2)
             .attr("dy", "0.35em")
             .attr("text-anchor", d =>
               d.a > PI_2 && d.a < PI_2 * 3 ? "end" : "start"
             )
-            .style("font", "12px arial")
+            .style("font", `${relativeTextSize}px arial`)
             .style("fill", d =>
               d.usada == 1 ? txtRelativeColorLight : txtRelativeColorDark
             )
@@ -431,12 +437,12 @@ document.addEventListener("DOMContentLoaded", function () {
                     : radToDegrees(d.a)
                 })`
             )
-            .attr("y", 7)
+            .attr("y", relativeTextSize / 2)
             .attr("dy", "0.35em")
             .attr("text-anchor", d =>
               d.a > PI_2 && d.a < PI_2 * 3 ? "end" : "start"
             )
-            .style("font", "10px arial")
+            .style("font", `${originsTextSize}px arial`)
             .style("fill", txtOriginColor)
             .text(d => d.origen);
         }
@@ -446,11 +452,11 @@ document.addEventListener("DOMContentLoaded", function () {
         /////////////////////////////////////////////////////////////////////////
         if (complete) {
           const piezaId = starData.id;
-          const progressBarWidth = 150;
+          const progressBarWidth = compositionPlayR * 7;
           const progressBarHeight = 2;
-          const timeHeight = 14;
-          const timeWidth = 40;
-          const horPadding = 10;
+          const timeHeight = compositionPlayR * 0.7;
+          const timeWidth = compositionPlayR * 2;
+          const horPadding = compositionPlayR / 2;
           let progress = 0;
           let mouseDownOnSlider = false;
 
@@ -495,7 +501,7 @@ document.addEventListener("DOMContentLoaded", function () {
           const compositionNextButtonContainer = audioControls
             .append("g")
             .attr("id", "nextButton" + piezaId)
-            .attr("transform", `translate(${50}, 0)`);
+            .attr("transform", `translate(${compositionPlayR * 2.4}, 0)`);
 
           compositionNextButtonContainer
             .append("circle")
@@ -514,7 +520,7 @@ document.addEventListener("DOMContentLoaded", function () {
           const compositionPreviousButtonContainer = audioControls
             .append("g")
             .attr("id", "previousButton" + piezaId)
-            .attr("transform", `translate(${-50}, 0)`);
+            .attr("transform", `translate(${-compositionPlayR * 2.4}, 0)`);
 
           compositionPreviousButtonContainer
             .append("circle")
@@ -535,7 +541,7 @@ document.addEventListener("DOMContentLoaded", function () {
             .attr("id", "progressBarContainer")
             .attr(
               "transform",
-              `translate(${-progressBarWidth / 2}, ${compositionPlayR + 15})`
+              `translate(${-progressBarWidth / 2}, ${compositionPlayR * 1.75})`
             );
 
           progressBarContainer
@@ -583,7 +589,7 @@ document.addEventListener("DOMContentLoaded", function () {
             .attr("dy", "0.35em")
             .attr("text-anchor", "middle")
             .style("fill", "grey")
-            .style("font", "10px arial")
+            .style("font", `${compositionPlayR * 0.5}px arial`)
             .text("00:00");
 
           progressBarContainer
@@ -594,7 +600,7 @@ document.addEventListener("DOMContentLoaded", function () {
             .attr("dy", "0.35em")
             .attr("text-anchor", "middle")
             .style("fill", "grey")
-            .style("font", "10px arial")
+            .style("font", `${compositionPlayR * 0.5}px arial`)
             .text("00:00");
 
           audioObjects[piezaId].addEventListener("loadeddata", () => {
@@ -659,9 +665,9 @@ document.addEventListener("DOMContentLoaded", function () {
           const centroText = audioControls
             .append("text")
             .attr("x", 0)
-            .attr("y", compositionPlayR + 45)
+            .attr("y", compositionPlayR * 3.2)
             .attr("text-anchor", "middle")
-            .style("font", "14px arial")
+            .style("font", `${compositionPlayR * 0.7}px arial`)
             .style("fill", txtRelativeColorLight)
             .text(starData.centro);
 
@@ -669,9 +675,9 @@ document.addEventListener("DOMContentLoaded", function () {
           const docenteText = audioControls
             .append("text")
             .attr("x", 0)
-            .attr("y", compositionPlayR + 60)
+            .attr("y", compositionPlayR * 4)
             .attr("text-anchor", "middle")
-            .style("font", "12px arial")
+            .style("font", `${compositionPlayR * 0.6}px arial`)
             .style("fill", txtRelativeColorDark)
             .text(starData.docente + " - " + starData.curso);
 
@@ -982,15 +988,17 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function getCoordinates(data, orientation, complete) {
+    const studentR = orderD / 2;
+    const relativeR = studentR * 0.45;
+    const relativePlayR = studentR * 0.66;
+
     const initA = complete
       ? orientation === "horizontal"
         ? 0
         : PI_2
       : d3.randomUniform(0, PI2)();
-    // const initA = orientation === "horizontal" ? 0 : PI_2;
 
     const factor = complete ? 1 : d3.randomUniform(0.2, 0.4)();
-    // const factor = complete ? 1 : 0.2; // Borrar
     data.simulationR = complete ? 0 : (R1 + R2 + 4 * orderD) * factor;
 
     Object.values(data.alumnos).forEach((student, i, studentArray) => {
@@ -1011,7 +1019,7 @@ document.addEventListener("DOMContentLoaded", function () {
             ? maxfanA
             : initRelativeA * (relativeArray.length - 1);
 
-        const textD = 20;
+        const textD = studentR;
         const initA = studenA - fanA / 2;
         const relativeA =
           relativeArray.length === 1
