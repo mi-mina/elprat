@@ -89,6 +89,7 @@ document.addEventListener("DOMContentLoaded", function () {
   let currentId;
   let counter = 0;
   let containerSelector = "graph";
+  let velocityDecay = d3.randomUniform(0.1, 0.4)();
 
   function init(files) {
     const dataRaw = files[0];
@@ -109,11 +110,6 @@ document.addEventListener("DOMContentLoaded", function () {
       const container = document.getElementById(selector);
       const svgWidth = container.clientWidth;
       const svgHeight = container.clientHeight;
-      console.log("svgHeight", svgHeight);
-      // console.log("svgWidth", svgWidth);
-      // 590 -> 82%
-      // 130 -> 18%
-      // 720
 
       R1 = svgHeight * 0.055;
       R2 = svgHeight * 0.1;
@@ -183,6 +179,17 @@ document.addEventListener("DOMContentLoaded", function () {
           ) {
             drawStar(container, data[d.id], orientation, false);
           }
+
+          // if (d.id === "starNode") {
+          //   chartContainer
+          //     .append("circle")
+          //     .attr("id", "starNodeCircle")
+          //     .attr("cx", 0)
+          //     .attr("cy", 0)
+          //     .attr("r", d.simulationR)
+          //     .style("fill", "none")
+          //     .style("stroke", "red");
+          // }
         });
       }
 
@@ -198,7 +205,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const simulation = d3
         .forceSimulation(nodes)
         .alphaTarget(0.2) // stay hot
-        .velocityDecay(0.7) // low friction
+        .velocityDecay(0.7) // soft movement
         .force("x", d3.forceX().strength(0.008))
         .force("y", d3.forceY().strength(0.05))
         .force(
@@ -334,17 +341,30 @@ document.addEventListener("DOMContentLoaded", function () {
           .attr("class", "relativeGroup")
           .style("cursor", d =>
             d.usada === 1 && complete ? "pointer" : "default"
-          );
+          )
+          .call(g => {
+            if (complete) showTooltip(g);
+          });
 
-        if (complete) {
-          relativeGroup
-            .append("title")
-            .text(
-              d =>
+        function showTooltip(g) {
+          const tooltip = d3.select("#tooltip");
+          g.on("mouseover", function (event, d) {
+            tooltip
+              .style("display", "block")
+              .html(
                 `${d.frase}${d.frase && d.significado ? ":" : ""} ${
                   d.significado
                 }`
-            );
+              );
+          })
+            .on("mousemove", function (event) {
+              tooltip
+                .style("left", event.pageX + 10 + "px")
+                .style("top", event.pageY + 10 + "px");
+            })
+            .on("mouseout", function () {
+              tooltip.style("display", "none");
+            });
         }
 
         const relativeWithAudio = relativeGroup.filter(d => d.usada === 1);
@@ -629,6 +649,15 @@ document.addEventListener("DOMContentLoaded", function () {
                 d3.select("#duration" + piezaId).text(
                   fmtTime(audioObjects[piezaId].duration)
                 );
+
+              const randR = d3.randomInt(R1 + R2 + 4 * orderD)();
+              nodes.filter(d => d.id === "starNode")[0].simulationR = randR;
+
+              // Comentar. Es solo para ver el tamaño del nodo central
+              // d3.select("#starNodeCircle").attr("r", randR);
+
+              simulation.nodes(nodes);
+              simulation.alpha(0.1).velocityDecay(velocityDecay).restart();
             }
           });
 
@@ -695,9 +724,7 @@ document.addEventListener("DOMContentLoaded", function () {
             counter = counter >= numberOfCompositions - 1 ? 0 : counter + 1;
             currentId = compositionIds[counter];
 
-            // Erase current star from background
-            // d3.select(`#composition${currentId}`).selectAll("*").remove();
-
+            // Erase current star from background after the transition
             d3.select(`#composition${currentId}`)
               .select(`#star${currentId}`)
               .transition()
@@ -716,8 +743,14 @@ document.addEventListener("DOMContentLoaded", function () {
               false
             );
 
-            simulation.nodes(nodes);
-            simulation.alpha(0.1).restart();
+            setTimeout(() => {
+              velocityDecay = d3.randomUniform(0.1, 0.4)();
+              nodes.filter(d => d.id === "starNode")[0].simulationR =
+                R1 + R2 + 4 * orderD;
+              d3.select("#starNodeCircle").attr("r", R1 + R2 + 4 * orderD);
+              simulation.nodes(nodes);
+              simulation.alpha(0.1).velocityDecay(velocityDecay).restart();
+            }, 200);
 
             // Erase previous complete star
             // d3.select(`#compositionCurrent${previousId}`).remove();
@@ -761,8 +794,14 @@ document.addEventListener("DOMContentLoaded", function () {
               false
             );
 
-            simulation.nodes(nodes);
-            simulation.alpha(0.1).restart();
+            setTimeout(() => {
+              velocityDecay = d3.randomUniform(0.1, 0.4)();
+              nodes.filter(d => d.id === "starNode")[0].simulationR =
+                R1 + R2 + 4 * orderD;
+              d3.select("#starNodeCircle").attr("r", R1 + R2 + 4 * orderD);
+              simulation.nodes(nodes);
+              simulation.alpha(0.1).velocityDecay(velocityDecay).restart();
+            }, 200);
 
             // Erase previous complete star
             d3.select(`#compositionCurrent${previousId}`).remove();
@@ -868,12 +907,21 @@ document.addEventListener("DOMContentLoaded", function () {
             d3.select("#pauseIcon" + id).style("display", "block");
             d3.select(`#aureola-${id}`).style("display", "block");
             d3.selectAll(`.student-aureola-${id}`).style("display", "block");
+
+            // velocityDecay = d3.randomUniform(0.1, 0.4)();
           } else {
             audio.pause();
             d3.select("#playIcon" + id).style("display", "block");
             d3.select("#pauseIcon" + id).style("display", "none");
             d3.select(`#aureola-${id}`).style("display", "none");
             d3.selectAll(`.student-aureola-${id}`).style("display", "none");
+
+            setTimeout(() => {
+              nodes.filter(d => d.id === "starNode")[0].simulationR =
+                R1 + R2 + 4 * orderD;
+              simulation.nodes(nodes);
+              simulation.alpha(0.1).velocityDecay(0.7).restart();
+            }, 200);
           }
         });
       }
