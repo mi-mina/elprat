@@ -349,13 +349,15 @@ document.addEventListener("DOMContentLoaded", function () {
         function showTooltip(g) {
           const tooltip = d3.select("#tooltip");
           g.on("mouseover", function (event, d) {
-            tooltip
-              .style("display", "block")
-              .html(
-                `${d.frase}${d.frase && d.significado ? ":" : ""} ${
-                  d.significado
-                }`
-              );
+            if (d.frase || d.significado) {
+              tooltip
+                .style("display", "block")
+                .html(
+                  `${d.frase}${d.frase && d.significado ? ":" : ""} ${
+                    d.significado
+                  }`
+                );
+            }
           })
             .on("mousemove", function (event) {
               tooltip
