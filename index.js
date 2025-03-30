@@ -374,7 +374,7 @@ document.addEventListener("DOMContentLoaded", function () {
             d.usada === 1 && complete ? "pointer" : "default"
           )
           .call(g => {
-            // if (complete) showTooltip(g);
+            if (complete) showTooltip(g);
           });
 
         function showTooltip(g) {
