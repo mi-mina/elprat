@@ -84,12 +84,22 @@ document.addEventListener("DOMContentLoaded", function () {
   const txtOriginColor = "#7d7d7d";
   const buttonColor = "#2F2F2FFF";
 
-  const colors = ["#ffffe0", "#feffbd", "#4dfffc", "#f73e7c"];
+  const courseColors = {
+    "4º música": "#da4326",
+    "4ºtE": "#e0b11b",
+    "4ºtB": "#32849a",
+    "3ºA": "#e9d7b3",
+    "3ºB": "#99b9b6", // Add a new color
+    "3ºC": "#9da768", // Add another new color
+  };
+
+  const colors = Object.values(courseColors); // Create an array of colors, for use in random color selection, if needed.
 
   let currentId;
   let counter = 0;
   let containerSelector = "graph";
   let velocityDecay = d3.randomUniform(0.1, 0.4)();
+  let simulation;
 
   function init(files) {
     const dataRaw = files[0];
@@ -104,6 +114,18 @@ document.addEventListener("DOMContentLoaded", function () {
     drawGraph(containerSelector, allCompositions);
 
     function drawGraph(selector, data) {
+      // Stop previous simulation if any //////////////////////////////////////
+      if (simulation) {
+        simulation.stop(); // Stop the previous simulation
+      }
+
+      // Pause all audios
+      Object.keys(audioObjects).forEach(key => {
+        audioObjects[key].pause();
+      });
+      // Reset audioObjects
+      audioObjects = {};
+
       ///////////////////////////////////////////////////////////////////////////
       // Set up svg /////////////////////////////////////////////////////////////
       ///////////////////////////////////////////////////////////////////////////
@@ -122,10 +144,28 @@ document.addEventListener("DOMContentLoaded", function () {
       const center = { x: svgWidth / 2, y: svgHeight / 2 };
       const orientation = svgWidth >= svgHeight ? "horizontal" : "vertical";
 
-      // Clear ///////////////////////////////////////////////////////////////////
+      // Clear ////////////////////////////////////////////////////////////////
       d3.select(`#${selector}`).selectAll("*").remove();
 
-      // Containers //////////////////////////////////////////////////////////////
+      // Create tooltip div ///////////////////////////////////////////////////
+      const tooltip = d3
+        .select(`#${selector}`)
+        .append("div")
+        .attr("id", "prat3tooltip")
+        .attr(
+          "class",
+          "z-50 block fixed bg-gray-800 text-sm px-4 py-2 mr-8 rounded-2xl shadow-xl shadow-gray-900/50"
+        )
+        .style("display", "none"); // Initially hide the tooltip
+
+      // Create the tooltip spans
+      tooltip.append("span").attr("id", "tooltip-frase");
+      tooltip
+        .append("span")
+        .attr("id", "tooltip-exp")
+        .attr("class", "text-gray-500");
+
+      // Containers ///////////////////////////////////////////////////////////
       const svg = d3
         .select(`#${selector}`)
         .append("svg")
@@ -137,14 +177,6 @@ document.addEventListener("DOMContentLoaded", function () {
       const chartContainer = svg
         .append("g")
         .attr("transform", d => `translate(${center.x}, ${center.y * 0.9})`);
-
-      // chartContainer
-      //   .append("circle")
-      //   .attr("cx", 0)
-      //   .attr("cy", 0)
-      //   .attr("r", 300)
-      //   .style("fill", "none")
-      //   .style("stroke", "red");
 
       // Set up nodes for simulation //////////////////////////////////////////
       const nodes = Object.values(data);
@@ -180,6 +212,7 @@ document.addEventListener("DOMContentLoaded", function () {
             drawStar(container, data[d.id], orientation, false);
           }
 
+          // Comentar. Solo para testing
           // if (d.id === "starNode") {
           //   chartContainer
           //     .append("circle")
@@ -202,7 +235,7 @@ document.addEventListener("DOMContentLoaded", function () {
       ///////////////////////////////////////////////////////////////////////////
       // Simulation /////////////////////////////////////////////////////////////
       ///////////////////////////////////////////////////////////////////////////
-      const simulation = d3
+      simulation = d3
         .forceSimulation(nodes)
         .alphaTarget(0.2) // stay hot
         .velocityDecay(0.7) // soft movement
@@ -221,12 +254,10 @@ document.addEventListener("DOMContentLoaded", function () {
         nodes
           .filter(d => d.id !== currentId)
           .forEach(d => {
-            if (d.id !== currentId) {
-              d3.select(`#composition${d.id}`).attr(
-                "transform",
-                `translate(${d.x}, ${d.y})`
-              );
-            }
+            d3.select(`#composition${d.id}`).attr(
+              "transform",
+              `translate(${d.x}, ${d.y})`
+            );
           });
       }
 
@@ -241,7 +272,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Draw functions /////////////////////////////////////////////////////////
       function drawStar(container, starData, orientation, complete) {
-        const color = colors[d3.randomInt(colors.length)()];
+        const color = courseColors[starData.curso] || "#808080"; // Default to gray if course not found
         const transparency = d3.randomUniform(0.05, 0.3)();
 
         getCoordinates(starData, orientation, complete);
@@ -343,26 +374,38 @@ document.addEventListener("DOMContentLoaded", function () {
             d.usada === 1 && complete ? "pointer" : "default"
           )
           .call(g => {
-            if (complete) showTooltip(g);
+            // if (complete) showTooltip(g);
           });
 
         function showTooltip(g) {
-          const tooltip = d3.select("#tooltip");
+          const tooltip = d3.select("#prat3tooltip");
+          const tooltipFrase = tooltip.select("#tooltip-frase");
+          const tooltipExp = tooltip.select("#tooltip-exp");
+
           g.on("mouseover", function (event, d) {
-            if (d.frase || d.significado) {
-              tooltip
-                .style("display", "block")
-                .html(
-                  `${d.frase}${d.frase && d.significado ? ":" : ""} ${
-                    d.significado
-                  }`
-                );
+            // Check if there's content AND d.usada === 1
+            if ((d.frase || d.significado) && d.usada === 1) {
+              tooltip.style("display", "block");
+
+              tooltipFrase.text(d.frase || ""); // Set frase or empty string if undefined
+
+              if (d.significado) {
+                if (d.frase) {
+                  tooltipExp.text(": " + d.significado); // Add colon if frase exists
+                } else {
+                  tooltipExp.text(d.significado); // No colon if only significado exists
+                }
+              } else {
+                tooltipExp.text(""); // Clear exp if significado is undefined
+              }
+            } else {
+              tooltip.style("display", "none"); // Hide if no content or d.usada !== 1
             }
           })
             .on("mousemove", function (event) {
               tooltip
                 .style("left", event.pageX + 10 + "px")
-                .style("top", event.pageY + 10 + "px");
+                .style("top", event.clientY + 10 + "px");
             })
             .on("mouseout", function () {
               tooltip.style("display", "none");
@@ -635,8 +678,10 @@ document.addEventListener("DOMContentLoaded", function () {
           audioObjects[piezaId].addEventListener("timeupdate", () => {
             if (!mouseDownOnSlider) {
               progress = audioObjects[piezaId]
-                ? audioObjects[piezaId].currentTime /
-                  audioObjects[piezaId].duration
+                ? audioObjects[piezaId].duration
+                  ? audioObjects[piezaId].currentTime /
+                    audioObjects[piezaId].duration
+                  : 0
                 : 0;
 
               d3.select("#progress" + piezaId).attr(
@@ -709,8 +754,27 @@ document.addEventListener("DOMContentLoaded", function () {
             .attr("y", compositionPlayR * 4)
             .attr("text-anchor", "middle")
             .style("font", `${compositionPlayR * 0.6}px arial`)
-            .style("fill", txtRelativeColorDark)
-            .text(starData.docente + " - " + starData.curso);
+            .style("fill", txtRelativeColorDark);
+
+          docenteText
+            .append("tspan")
+            .style("fill", color)
+            .text(`${starData.curso}`);
+
+          docenteText.append("tspan").text(` - (Prof. ${starData.docente})`);
+
+          // Project URL Link
+          audioControls
+            .append("a")
+            .attr("xlink:href", starData.project_url)
+            .attr("target", "_blank") // Open in a new tab
+            .append("text")
+            .attr("x", 0)
+            .attr("y", compositionPlayR * 4.8) // Position below docenteText
+            .attr("text-anchor", "middle")
+            .style("font", `${compositionPlayR * 0.6}px arial`)
+            .style("fill", txtOriginColor) // chroma(color).darken(2)) // Use the same color as the course
+            .text(">> explora en play");
 
           // Add event listeners //////////////////////////////////////////////////
           d3.select("#nextButton" + piezaId).on("click", function () {
@@ -755,7 +819,6 @@ document.addEventListener("DOMContentLoaded", function () {
             }, 200);
 
             // Erase previous complete star
-            // d3.select(`#compositionCurrent${previousId}`).remove();
             d3.select(`#starCurrent${previousId}`)
               .transition()
               .duration(transitionDuration)
@@ -785,8 +848,16 @@ document.addEventListener("DOMContentLoaded", function () {
             counter = counter <= 0 ? numberOfCompositions - 1 : counter - 1;
             currentId = compositionIds[counter];
 
-            // Erase current star from background
-            d3.select(`#composition${currentId}`).selectAll("*").remove();
+            // Erase current star from background after the transition
+            d3.select(`#composition${currentId}`)
+              .select(`#star${currentId}`)
+              .transition()
+              .duration(transitionDuration)
+              .style("opacity", 0)
+              .on("end", function () {
+                // Remove the element after the transition ends
+                d3.select(this).remove();
+              });
 
             // Redraw previous star in background
             drawStar(
@@ -806,7 +877,14 @@ document.addEventListener("DOMContentLoaded", function () {
             }, 200);
 
             // Erase previous complete star
-            d3.select(`#compositionCurrent${previousId}`).remove();
+            d3.select(`#starCurrent${previousId}`)
+              .transition()
+              .duration(transitionDuration)
+              .style("opacity", 0)
+              .on("end", function () {
+                // Remove the element after the transition ends
+                d3.select(this.parentNode).remove();
+              });
 
             // Draw current complete star
             const starContainer = chartContainer
@@ -955,7 +1033,6 @@ document.addEventListener("DOMContentLoaded", function () {
     //   containerSelector = "graph";
     //   d3.select(`#graph-modal`).selectAll("*").remove();
     //   drawGraph(containerSelector, allCompositions);
-    //   // modalContainer.selectAll('svg').remove();
     // });
   }
 
@@ -980,6 +1057,7 @@ document.addEventListener("DOMContentLoaded", function () {
         usada,
         frase,
         significado,
+        project_url,
       } = d;
 
       if (!data[id]) {
@@ -989,6 +1067,7 @@ document.addEventListener("DOMContentLoaded", function () {
           docente,
           curso,
           pieza_path,
+          project_url,
           alumnos: {},
         };
       }
